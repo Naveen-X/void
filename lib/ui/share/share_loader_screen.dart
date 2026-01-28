@@ -63,8 +63,8 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
     return Directionality( // Required because we removed Scaffold/Material
       textDirection: TextDirection.ltr,
       child: Container(
-        color: Colors.black,
-        alignment: Alignment.center, // <--- This forces the Orb to the center
+        color: Colors.transparent,
+        alignment: Alignment.center,
         child: OrbLoader(state: _orbState),
       ),
     );
