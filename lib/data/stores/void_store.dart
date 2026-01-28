@@ -36,4 +36,12 @@ class VoidStore {
 
     await _file.writeAsString(jsonEncode(list));
   }
+
+  static Future<void> delete(String id) async {
+    await init();
+    final raw = await _file.readAsString();
+    List list = jsonDecode(raw);
+    list.removeWhere((item) => item['id'] == id);
+    await _file.writeAsString(jsonEncode(list));
+  }
 }

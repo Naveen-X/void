@@ -1,4 +1,4 @@
-package com.example.void_space // <--- CHECK THIS MATCHES YOUR PACKAGE NAME
+package com.example.void_space
 
 import android.content.Intent
 import android.os.Bundle
@@ -10,10 +10,8 @@ class ShareHandlerActivity : FlutterActivity() {
     private val CHANNEL = "void/share"
     private var sharedText: String? = null
 
-    // ⚡ FORCE FLUTTER TO START AT /share
-    override fun getInitialRoute(): String {
-        return "/share"
-    }
+    // We don't need getInitialRoute anymore. 
+    // The Entrypoint "shareMain" handles the view.
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -1,7 +1,7 @@
-import '../../app/void_route.dart';
 import 'package:flutter/material.dart';
-import '../profile/profile_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../app/void_route.dart';
+import '../profile/profile_screen.dart';
 
 class VoidHeader extends StatelessWidget {
   const VoidHeader({super.key});
@@ -11,56 +11,41 @@ class VoidHeader extends StatelessWidget {
     return SafeArea(
       bottom: false,
       child: Container(
-        height: 72,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        height: 80,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        alignment: Alignment.centerLeft,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Logo
-            Text(
-              'void',
-              style: GoogleFonts.ibmPlexMono(
-                fontSize: 26,
-                fontWeight: FontWeight.w300,
-                letterSpacing: 1.8,
-                color: Colors.white70,
+            // 🔥 TERMINAL BRAND HERO
+            Hero(
+              tag: 'void_brand',
+              child: Material(
+                type: MaterialType.transparency,
+                child: Text(
+                  'void',
+                  style: GoogleFonts.ibmPlexMono(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -1.0,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
-
-            // Profile orb (flat + soft like reference)
+            
+            // Profile Button
             GestureDetector(
-              onTap: () {
-                Navigator.of(
-                  context,
-                ).push(VoidSurfaceRoute(page: const ProfileScreen()));
-              },
-
+              onTap: () => Navigator.of(context).push(VoidSurfaceRoute(page: const ProfileScreen())),
               child: Container(
-                width: 32,
-                height: 32,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const RadialGradient(
-                    center: Alignment(-0.3, -0.3),
-                    radius: 1.2,
-                    colors: [Color(0xFFF2F2F2), Color(0xFFBDBDBD)],
-                  ),
-                  boxShadow: [
-                    // ambient glow
-                    BoxShadow(
-                      color: const Color(0xFFFFFFFF).withValues(alpha: 0.12),
-                      blurRadius: 36,
-                      spreadRadius: 10,
-                    ),
-
-                    // soft depth (keeps it grounded)
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  color: Colors.white.withValues(alpha: 0.1),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 ),
+                child: const Icon(Icons.person, size: 18, color: Colors.white54),
               ),
             ),
           ],
