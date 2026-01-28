@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:void_space/data/models/void_item.dart';
@@ -29,14 +31,16 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
     if (mounted) setState(() => _orbState = OrbState.processing);
 
     final text = await ShareBridge.getSharedText();
-    if (text == null || text.isEmpty) { 
-      _close(); 
-      return; 
+    if (text == null || text.isEmpty) {
+      _close();
+      return;
     }
 
     VoidItem item;
     try {
-      item = await LinkMetadataService.fetch(text).timeout(const Duration(seconds: 4));
+      item = await LinkMetadataService.fetch(
+        text,
+      ).timeout(const Duration(seconds: 4));
     } catch (_) {
       item = VoidItem.fallback(text);
     }
@@ -47,7 +51,7 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
 
     // 3. Success (Expansion)
     if (mounted) setState(() => _orbState = OrbState.success);
-    
+
     // 4. Wait for expansion animation
     await Future.delayed(const Duration(milliseconds: 600));
     _close();
@@ -60,12 +64,16 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
   @override
   Widget build(BuildContext context) {
     // 🔥 FIX: Remove Scaffold. Use Container with explicit alignment.
-    return Directionality( // Required because we removed Scaffold/Material
+    return Directionality(
+      // Required because we removed Scaffold/Material
       textDirection: TextDirection.ltr,
       child: Container(
         color: Colors.transparent,
         alignment: Alignment.center,
-        child: OrbLoader(state: _orbState),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: OrbLoader(state: _orbState),
+        ),
       ),
     );
   }
