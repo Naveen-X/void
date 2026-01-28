@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart'; // Needed for post-frame callback
+import 'package:flutter/scheduler.dart'; 
 
 import 'package:void_space/data/models/void_item.dart';
 import 'package:void_space/data/stores/void_store.dart';
@@ -19,15 +19,15 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
   @override
   void initState() {
     super.initState();
-    // Run after build to ensure animation starts smoothly
+    // Start logic after first frame render
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _processShare();
     });
   }
 
   Future<void> _processShare() async {
-    // 1. Minimum animation time (UX)
-    await Future.delayed(const Duration(milliseconds: 500));
+    // 1. Wait a moment for the animation to be visible (UX)
+    await Future.delayed(const Duration(milliseconds: 600));
 
     // 2. PULL: Ask Native for the text
     final text = await ShareBridge.getSharedText();
@@ -37,36 +37,37 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
       return;
     }
 
-    // 3. Metadata Fetch & Save
+    // 3. Metadata Fetch
     VoidItem item;
     try {
       item = await LinkMetadataService.fetch(text)
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 4));
     } catch (_) {
       item = VoidItem.fallback(text);
     }
 
+    // 4. Save to Disk
     try {
       await VoidStore.add(item);
     } catch (e) {
       debugPrint("Save failed: $e");
     }
 
-    // 4. Success Animation delay
-    await Future.delayed(const Duration(milliseconds: 300));
+    // 5. Success Delay (let user see the orb pulse)
+    await Future.delayed(const Duration(milliseconds: 400));
     
     _close();
   }
 
   void _close() {
-    // 5. Tell Native to kill the activity via MethodChannel
+    // 6. Tell Native to kill the activity
     ShareBridge.close();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Opaque black to hide transparent activity quirks
+      backgroundColor: Colors.black,
       body: const Center(
         child: OrbLoader(),
       ),

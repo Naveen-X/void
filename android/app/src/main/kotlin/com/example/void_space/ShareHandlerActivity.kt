@@ -1,4 +1,4 @@
-package com.example.void_space
+package com.example.void_space // <--- CHECK THIS MATCHES YOUR PACKAGE NAME
 
 import android.content.Intent
 import android.os.Bundle
@@ -9,6 +9,11 @@ import io.flutter.plugin.common.MethodChannel
 class ShareHandlerActivity : FlutterActivity() {
     private val CHANNEL = "void/share"
     private var sharedText: String? = null
+
+    // ⚡ FORCE FLUTTER TO START AT /share
+    override fun getInitialRoute(): String {
+        return "/share"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,18 +41,12 @@ class ShareHandlerActivity : FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "getSharedText" -> {
-                    // FLUTTER PULLS DATA HERE
-                    result.success(sharedText)
-                }
+                "getSharedText" -> result.success(sharedText)
                 "done" -> {
-                    // FLUTTER TELLS NATIVE TO KILL ACTIVITY
                     finishAndRemoveTask()
                     result.success(null)
                 }
-                else -> {
-                    result.notImplemented()
-                }
+                else -> result.notImplemented()
             }
         }
     }

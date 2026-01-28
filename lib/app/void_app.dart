@@ -17,9 +17,10 @@ class VoidApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.black,
       ),
 
-      // 🔥 IMPORTANT: let Android decide initial route
-      initialRoute: '/',
+      // ❌ REMOVE THIS LINE:
+      // initialRoute: '/', 
 
+      // ✅ KEEPS ROUTES:
       routes: {
         '/': (_) => const HomeScreen(),
         '/share': (_) => const ShareLoaderScreen(),
