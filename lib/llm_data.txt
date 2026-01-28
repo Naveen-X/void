@@ -1,0 +1,1041 @@
+# LLM Data Collection
+Generated at: 2026-01-27 17:55:40 UTC
+Total files processed: 14
+Total size: 25.7KB
+
+<file_tree>
+└── ./
+    ├── app/
+    │   ├── void_app.dart (684B)
+    │   └── void_route.dart (1.6KB)
+    ├── data/
+    │   ├── models/
+    │   │   └── void_item.dart (1.5KB)
+    │   └── stores/
+    │       └── void_store.dart (948B)
+    ├── main.dart (228B)
+    ├── services/
+    │   ├── link_metadata_service.dart (1.1KB)
+    │   └── share_bridge.dart (572B)
+    └── ui/
+        ├── home/
+        │   ├── empty_state.dart (2.4KB)
+        │   ├── home_screen.dart (2.9KB)
+        │   ├── messy_card.dart (1.5KB)
+        │   └── void_header.dart (2.1KB)
+        ├── profile/
+        │   └── profile_screen.dart (7.2KB)
+        └── share/
+            ├── orb_loader.dart (1.2KB)
+            └── share_loader_screen.dart (1.7KB)
+</file_tree>
+
+<file="void_app.dart" filepath="app/void_app.dart" size="684B">
+import 'package:flutter/material.dart';
+
+import '../ui/home/home_screen.dart';
+import '../ui/share/share_loader_screen.dart';
+
+class VoidApp extends StatelessWidget {
+  const VoidApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+
+      themeMode: ThemeMode.dark,
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black,
+      ),
+
+      // 🔥 IMPORTANT: let Android decide initial route
+      initialRoute: '/',
+
+      routes: {
+        '/': (_) => const HomeScreen(),
+        '/share': (_) => const ShareLoaderScreen(),
+      },
+    );
+  }
+}
+</file>
+
+<file="void_route.dart" filepath="app/void_route.dart" size="1.6KB">
+import 'package:flutter/material.dart';
+
+class VoidSurfaceRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+  VoidSurfaceRoute({required this.page})
+    : super(
+        opaque: false,
+        barrierColor: Colors.black.withValues(alpha: 0.92),
+        transitionDuration: const Duration(milliseconds: 260),
+        reverseTransitionDuration: const Duration(milliseconds: 200),
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curve = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          final t = curve.value;
+
+          return FadeTransition(
+            opacity: curve,
+
+            child: AnimatedBuilder(
+              animation: curve,
+              builder: (context, _) {
+                return Transform.scale(
+                  scale: 0.98 + (t * 0.02),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: 0.30 * curve.value,
+                          ),
+                          blurRadius: 48 * curve.value,
+                          spreadRadius: 6 * curve.value,
+                        ),
+                      ],
+                    ),
+                    child: child,
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      );
+}
+</file>
+
+<file="void_item.dart" filepath="data/models/void_item.dart" size="1.5KB">
+class VoidItem {
+  final String id;
+
+  /// note | link | image
+  final String type;
+
+  /// Main payload
+  /// - note  → text
+  /// - link  → url
+  /// - image → base64 / path
+  final String content;
+
+  final String title;
+  final String summary;
+  final String? imageUrl;
+
+  final DateTime createdAt;
+
+  VoidItem({
+    required this.id,
+    required this.type,
+    required this.content,
+    required this.title,
+    required this.summary,
+    required this.imageUrl,
+    required this.createdAt,
+  });
+
+  // ---------------- JSON ----------------
+
+  factory VoidItem.fromJson(Map<String, dynamic> json) {
+    return VoidItem(
+      id: json['id'],
+      type: json['type'],
+      content: json['content'],
+      title: json['title'] ?? '',
+      summary: json['summary'] ?? '',
+      imageUrl: json['imageUrl'],
+      createdAt: DateTime.parse(json['createdAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'content': content,
+      'title': title,
+      'summary': summary,
+      'imageUrl': imageUrl,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  // ---------------- FALLBACK ----------------
+
+  factory VoidItem.fallback(String text) {
+    final uri = Uri.tryParse(text);
+
+    return VoidItem(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      type: 'link',
+      content: text,
+      title: uri?.host ?? text,
+      summary: '',
+      imageUrl: null,
+      createdAt: DateTime.now(),
+    );
+  }
+}
+</file>
+
+<file="void_store.dart" filepath="data/stores/void_store.dart" size="948B">
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import '../models/void_item.dart';
+
+class VoidStore {
+  static late File _file;
+  static bool _inited = false;
+
+  static Future<void> init() async {
+    if (_inited) return;
+
+    final dir = await getApplicationDocumentsDirectory();
+    _file = File('${dir.path}/void_items.json');
+
+    if (!_file.existsSync()) {
+      await _file.writeAsString('[]');
+    }
+
+    _inited = true;
+  }
+
+  static Future<List<VoidItem>> all() async {
+    await init();
+    final raw = await _file.readAsString();
+    final list = jsonDecode(raw) as List;
+    return list.map((e) => VoidItem.fromJson(e)).toList().reversed.toList();
+  }
+
+  static Future<void> add(VoidItem item) async {
+    await init();
+    final raw = await _file.readAsString();
+    final list = jsonDecode(raw) as List;
+
+    list.add(item.toJson());
+
+    await _file.writeAsString(jsonEncode(list));
+  }
+}
+</file>
+
+<file="main.dart" filepath="main.dart" size="228B">
+import 'package:flutter/material.dart';
+
+import 'app/void_app.dart';
+import 'data/stores/void_store.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await VoidStore.init();
+  runApp(const VoidApp());
+}
+</file>
+
+<file="link_metadata_service.dart" filepath="services/link_metadata_service.dart" size="1.1KB">
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:html/parser.dart' as html;
+
+import 'package:void_space/data/models/void_item.dart';
+
+class LinkMetadataService {
+  static Future<VoidItem> fetch(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      return VoidItem.fallback(url);
+    }
+
+    final res = await http.get(uri);
+    final body = utf8.decode(res.bodyBytes);
+
+    final doc = html.parse(body);
+
+    String? pickMeta(String key) {
+      return doc
+          .querySelector('meta[property="$key"]')
+          ?.attributes['content'];
+    }
+
+    final title =
+        pickMeta('og:title') ??
+        doc.querySelector('title')?.text ??
+        uri.host;
+
+    final summary =
+        pickMeta('og:description') ??
+        pickMeta('description') ??
+        '';
+
+    final imageUrl = pickMeta('og:image');
+
+    return VoidItem(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      type: 'link',
+      content: url,
+      title: title.trim(),
+      summary: summary.trim(),
+      imageUrl: imageUrl,
+      createdAt: DateTime.now(),
+    );
+  }
+}
+</file>
+
+<file="share_bridge.dart" filepath="services/share_bridge.dart" size="572B">
+import 'package:flutter/services.dart';
+
+class ShareBridge {
+  static const MethodChannel _channel = MethodChannel('void/share');
+
+  static void init({
+    required void Function(String text) onShare,
+  }) {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method != 'shareText') return;
+
+      final args = call.arguments as Map?;
+      final text = args?['text'] as String?;
+
+      if (text == null || text.isEmpty) return;
+
+      onShare(text);
+    });
+  }
+
+  static void close() {
+    try {
+      _channel.invokeMethod('done');
+    } catch (_) {}
+  }
+}
+</file>
+
+<file="empty_state.dart" filepath="ui/home/empty_state.dart" size="2.4KB">
+import 'package:flutter/material.dart';
+
+class VoidEmptyState extends StatelessWidget {
+  const VoidEmptyState({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.10),
+                    blurRadius: 80,
+                    spreadRadius: 24,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF111111),
+                    borderRadius: BorderRadius.circular(26),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome_outlined,
+                    color: Colors.white70,
+                    size: 28,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 36),
+            const Text(
+              'Deep Silence',
+              style: TextStyle(
+                fontSize: 28,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w300,
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 24, vertical: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.18),
+                ),
+              ),
+              child: const Text(
+                'CAPTURE YOUR FIRST FRAGMENT',
+                style: TextStyle(
+                  fontSize: 10,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white54,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file="home_screen.dart" filepath="ui/home/home_screen.dart" size="2.9KB">
+import 'package:flutter/material.dart';
+
+import 'package:void_space/data/models/void_item.dart';
+import 'package:void_space/data/stores/void_store.dart';
+
+import 'empty_state.dart';
+import 'messy_card.dart';
+import 'void_header.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen>
+    with WidgetsBindingObserver {
+  List<VoidItem> _items = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// 🔄 Reload when app comes back to foreground
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _load();
+    }
+  }
+
+  /// 📖 Always read from disk (JSON is truth)
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+    });
+
+    final items = await VoidStore.all();
+
+    if (!mounted) return;
+
+    setState(() {
+      _items = items;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // ─── CONTENT ─────────────────────────────
+          if (_loading)
+            const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 1.2,
+                color: Colors.white70,
+              ),
+            )
+          else if (_items.isEmpty)
+            const Center(
+              child: VoidEmptyState(),
+            )
+          else
+            GridView.builder(
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                96, // header space
+                16,
+                120, // bottom space
+              ),
+              gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+              ),
+              itemCount: _items.length,
+              itemBuilder: (_, i) {
+                final item = _items[i];
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 280),
+                  switchInCurve: Curves.easeOutCubic,
+                  child: MessyCard(
+                    key: ValueKey(item.id),
+                    item: item,
+                  ),
+                );
+              },
+            ),
+
+          // ─── HEADER ──────────────────────────────
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: VoidHeader(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+</file>
+
+<file="messy_card.dart" filepath="ui/home/messy_card.dart" size="1.5KB">
+import 'dart:math';
+import 'package:flutter/material.dart';
+import '../../data/models/void_item.dart';
+
+class MessyCard extends StatelessWidget {
+  final VoidItem item;
+
+  const MessyCard({
+    super.key,
+    required this.item,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final rnd = Random(item.id.hashCode);
+    final offset = rnd.nextDouble() * 14 - 7;
+    final padding = 12 + rnd.nextDouble() * 6;
+
+    return Transform.translate(
+      offset: Offset(0, offset),
+      child: Container(
+        padding: EdgeInsets.all(padding),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.6),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: _content(),
+      ),
+    );
+  }
+
+  Widget _content() {
+    // Future-proof: different layouts per type
+    switch (item.type) {
+      case 'link':
+        return Text(
+          item.title,
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.w500,
+            height: 1.3,
+          ),
+        );
+
+      default:
+        return Text(
+          item.content,
+          maxLines: 6,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white60,
+            height: 1.4,
+          ),
+        );
+    }
+  }
+}
+</file>
+
+<file="void_header.dart" filepath="ui/home/void_header.dart" size="2.1KB">
+import '../../app/void_route.dart';
+import 'package:flutter/material.dart';
+import '../profile/profile_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class VoidHeader extends StatelessWidget {
+  const VoidHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Logo
+            Text(
+              'void',
+              style: GoogleFonts.ibmPlexMono(
+                fontSize: 26,
+                fontWeight: FontWeight.w300,
+                letterSpacing: 1.8,
+                color: Colors.white70,
+              ),
+            ),
+
+            // Profile orb (flat + soft like reference)
+            GestureDetector(
+              onTap: () {
+                Navigator.of(
+                  context,
+                ).push(VoidSurfaceRoute(page: const ProfileScreen()));
+              },
+
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const RadialGradient(
+                    center: Alignment(-0.3, -0.3),
+                    radius: 1.2,
+                    colors: [Color(0xFFF2F2F2), Color(0xFFBDBDBD)],
+                  ),
+                  boxShadow: [
+                    // ambient glow
+                    BoxShadow(
+                      color: const Color(0xFFFFFFFF).withValues(alpha: 0.12),
+                      blurRadius: 36,
+                      spreadRadius: 10,
+                    ),
+
+                    // soft depth (keeps it grounded)
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file="profile_screen.dart" filepath="ui/profile/profile_screen.dart" size="7.2KB">
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.6),
+                blurRadius: 40,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ─── Header ─────────────────────────────
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 18,
+                      color: Colors.white70,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'profile',
+                    style: GoogleFonts.ibmPlexMono(
+                      fontSize: 18,
+                      letterSpacing: 1.2,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 36),
+
+              // ─── Identity ───────────────────────────
+              Center(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const RadialGradient(
+                          center: Alignment(-0.3, -0.3),
+                          radius: 1.2,
+                          colors: [
+                            Color(0xFFF2F2F2),
+                            Color(0xFFBDBDBD),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                Colors.white.withValues(alpha: 0.08),
+                            blurRadius: 32,
+                            spreadRadius: 8,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Local Identity',
+                      style: GoogleFonts.ibmPlexMono(
+                        fontSize: 14,
+                        letterSpacing: 1.1,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'stored only on this device',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 48),
+
+              // ─── Stats ──────────────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  _StatBlock(label: 'Items', value: '—'),
+                  _StatBlock(label: 'Storage', value: '—'),
+                  _StatBlock(label: 'Mode', value: 'Local'),
+                ],
+              ),
+
+              const SizedBox(height: 40),
+
+              // ─── Actions ────────────────────────────
+              _ActionTile(
+                title: 'Export data',
+                subtitle: 'Save your vault as a file',
+                onTap: () {},
+              ),
+              const SizedBox(height: 12),
+              _ActionTile(
+                title: 'Import data',
+                subtitle: 'Restore from backup',
+                onTap: () {},
+              ),
+
+              const Spacer(),
+
+              // ─── Danger Zone ────────────────────────
+              Center(
+                child: TextButton(
+                  onPressed: () {},
+                  child: Text(
+                    'Reset vault',
+                    style: TextStyle(
+                      color: Colors.red.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/* ───────────────────────────────────────────── */
+
+class _StatBlock extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatBlock({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.ibmPlexMono(
+            fontSize: 16,
+            letterSpacing: 1.2,
+            color: Colors.white70,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.white.withValues(alpha: 0.4),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/* ───────────────────────────────────────────── */
+
+class _ActionTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ActionTile({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.4),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file="orb_loader.dart" filepath="ui/share/orb_loader.dart" size="1.2KB">
+import 'package:flutter/material.dart';
+
+class OrbLoader extends StatefulWidget {
+  const OrbLoader({super.key});
+
+  @override
+  State<OrbLoader> createState() => _OrbLoaderState();
+}
+
+class _OrbLoaderState extends State<OrbLoader>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: Tween(begin: 0.92, end: 1.05)
+          .animate(CurvedAnimation(
+        parent: _ctrl,
+        curve: Curves.easeInOut,
+      )),
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const RadialGradient(
+            colors: [
+              Colors.white,
+              Color(0xFF888888),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.white.withValues(alpha: 0.25),
+              blurRadius: 24,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file="share_loader_screen.dart" filepath="ui/share/share_loader_screen.dart" size="1.7KB">
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'package:void_space/data/models/void_item.dart';
+import 'package:void_space/data/stores/void_store.dart';
+import 'package:void_space/services/link_metadata_service.dart';
+import 'package:void_space/services/share_bridge.dart';
+
+import 'orb_loader.dart';
+
+class ShareLoaderScreen extends StatefulWidget {
+  const ShareLoaderScreen({super.key});
+
+  @override
+  State<ShareLoaderScreen> createState() => _ShareLoaderScreenState();
+}
+
+class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
+  bool _started = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ShareBridge.init(onShare: _handleShare);
+  }
+
+  Future<void> _handleShare(String text) async {
+    if (_started) return;
+    _started = true;
+
+    // Let orb appear
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    VoidItem item;
+    try {
+      item = await LinkMetadataService
+          .fetch(text)
+          .timeout(const Duration(seconds: 6));
+    } catch (_) {
+      item = VoidItem.fallback(text);
+    }
+
+    try {
+      await VoidStore.add(item);
+    } catch (_) {
+      // ignore — must exit regardless
+    }
+
+    // Let orb finish animation
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // 1️⃣ Finish Android share activity
+    ShareBridge.close();
+
+    // 2️⃣ Pop Flutter UI (if any)
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+
+    // 3️⃣ FORCE Flutter to background / exit
+    SystemNavigator.pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black.withValues(alpha: 0.9),
+      body: const Center(
+        child: OrbLoader(),
+      ),
+    );
+  }
+}
+</file>
+
+<!-- Summary -->
+<!-- Files included: 14 -->
+<!-- Total size: 25.7KB -->
+<!-- Generated by: LLM Data Collector -->
