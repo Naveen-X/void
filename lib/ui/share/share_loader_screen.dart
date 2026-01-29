@@ -1,4 +1,3 @@
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -38,9 +37,7 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
 
     VoidItem item;
     try {
-      item = await LinkMetadataService.fetch(
-        text,
-      ).timeout(const Duration(seconds: 4));
+      item = await LinkMetadataService.fetch(text).timeout(const Duration(seconds: 4));
     } catch (_) {
       item = VoidItem.fallback(text);
     }
@@ -64,16 +61,12 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
   @override
   Widget build(BuildContext context) {
     // 🔥 FIX: Remove Scaffold. Use Container with explicit alignment.
-    return Directionality(
-      // Required because we removed Scaffold/Material
+    return Directionality( // Required because we removed Scaffold/Material
       textDirection: TextDirection.ltr,
       child: Container(
-        color: Colors.transparent,
-        alignment: Alignment.center,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: OrbLoader(state: _orbState),
-        ),
+        color: Colors.black,
+        alignment: Alignment.center, // <--- This forces the Orb to the center
+        child: OrbLoader(state: _orbState),
       ),
     );
   }

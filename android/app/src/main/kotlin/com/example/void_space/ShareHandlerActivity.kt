@@ -11,10 +11,6 @@ class ShareHandlerActivity : FlutterActivity() {
     private val CHANNEL = "void/share"
     private var sharedText: String? = null
 
-    override fun getBackgroundMode(): BackgroundMode {
-        return BackgroundMode.transparent
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleIntent(intent)
