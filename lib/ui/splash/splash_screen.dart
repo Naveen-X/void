@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../services/security_service.dart'; // 🔥 ADD THIS
 import '../home/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class _SplashScreenState extends State<SplashScreen> {
   final String _targetBrand = "void";
   bool _showCursor = true;
   bool _bootComplete = false;
+  bool _needsRetry = false; // 🔥 For failed auth
   Timer? _cursorTimer;
 
   @override
@@ -43,29 +45,44 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _runTerminalSequence() async {
-    // 1. Show Logs rapidly
+    setState(() { _needsRetry = false; });
+
+    // 1. Logs
     for (var log in _rawLogs) {
-      await Future.delayed(const Duration(milliseconds: 400));
+      await Future.delayed(const Duration(milliseconds: 350));
       if (mounted) setState(() => _logs.add("> $log"));
     }
 
-    await Future.delayed(const Duration(milliseconds: 600));
-
     // 2. Type Brand
     for (int i = 0; i <= _targetBrand.length; i++) {
-      // 🔥 FIXED: Removed 'const' from Duration
-      await Future.delayed(Duration(milliseconds: 1200 ~/ _targetBrand.length));
-      if (mounted) {
-        setState(() => _brandText = _targetBrand.substring(0, i));
-      }
+      await Future.delayed(Duration(milliseconds: 1000 ~/ _targetBrand.length));
+      if (mounted) setState(() => _brandText = _targetBrand.substring(0, i));
     }
 
-    // 3. Finalize
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) setState(() => _bootComplete = true);
 
+    // 3. 🔥 SECURITY HANDSHAKE
+    final bool isLocked = await SecurityService.isLockEnabled();
+    if (isLocked) {
+      if (mounted) setState(() => _logs.add("> CHALLENGE: BIOMETRIC_REQUIRED"));
+      
+      final bool authenticated = await SecurityService.authenticate();
+      
+      if (!authenticated) {
+        if (mounted) {
+          setState(() {
+            _logs.add("> ERROR: HANDSHAKE_REJECTED");
+            _needsRetry = true;
+          });
+        }
+        return; // Stop here
+      }
+      if (mounted) setState(() => _logs.add("> HANDSHAKE_SUCCESS"));
+    }
+
     // 4. Navigate
-    await Future.delayed(const Duration(milliseconds: 1200));
+    await Future.delayed(const Duration(milliseconds: 800));
     if (mounted) {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
@@ -87,22 +104,13 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // TERMINAL LOGS (Dimmed)
-            ..._logs.map((log) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                log,
-                style: GoogleFonts.ibmPlexMono(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  fontSize: 10,
-                  letterSpacing: 1.0,
-                ),
-              ),
+            ..._logs.map((log) => Text(
+              log,
+              style: GoogleFonts.ibmPlexMono(color: Colors.white.withValues(alpha: 0.15), fontSize: 10),
             )),
 
             const SizedBox(height: 20),
 
-            // THE BRAND LINE
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -112,28 +120,27 @@ class _SplashScreenState extends State<SplashScreen> {
                     type: MaterialType.transparency,
                     child: Text(
                       _brandText,
-                      style: GoogleFonts.ibmPlexMono(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: -1.0,
-                      ),
+                      style: GoogleFonts.ibmPlexMono(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w400),
                     ),
                   ),
                 ),
-                // THE CURSOR
                 if (!_bootComplete)
                   Opacity(
                     opacity: _showCursor ? 1.0 : 0.0,
-                    child: Container(
-                      width: 12,
-                      height: 24,
-                      margin: const EdgeInsets.only(left: 8),
-                      color: Colors.white70,
-                    ),
+                    child: Container(width: 12, height: 24, margin: const EdgeInsets.only(left: 8), color: Colors.white70),
                   ),
               ],
             ),
+
+            // 🔥 RETRY BUTTON
+            if (_needsRetry)
+              Padding(
+                padding: const EdgeInsets.only(top: 32),
+                child: TextButton(
+                  onPressed: _runTerminalSequence,
+                  child: Text("RETRY_HANDSHAKE", style: GoogleFonts.ibmPlexMono(color: Colors.white54, fontSize: 12, decoration: TextDecoration.underline)),
+                ),
+              ),
           ],
         ),
       ),

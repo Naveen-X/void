@@ -18,7 +18,7 @@ class _OrbLoaderState extends State<OrbLoader> with SingleTickerProviderStateMix
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
+      duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
   }
 
@@ -30,64 +30,77 @@ class _OrbLoaderState extends State<OrbLoader> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    // Speed up if processing
     if (widget.state == OrbState.processing) {
-      if (!_ctrl.isAnimating || _ctrl.duration != const Duration(milliseconds: 600)) {
-        _ctrl.duration = const Duration(milliseconds: 600);
-        _ctrl.repeat(reverse: true);
-      }
-    } else if (widget.state == OrbState.idle) {
-      if (_ctrl.duration != const Duration(seconds: 4)) {
-        _ctrl.duration = const Duration(seconds: 4);
+      if (_ctrl.duration != const Duration(milliseconds: 400)) {
+        _ctrl.duration = const Duration(milliseconds: 400);
         _ctrl.repeat(reverse: true);
       }
     }
 
-    // If success, we expand out
-    if (widget.state == OrbState.success) {
-      return TweenAnimationBuilder<double>(
-        tween: Tween(begin: 1.0, end: 4.0),
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInExpo,
-        builder: (_, val, __) => Opacity(
-          opacity: (1 - (val - 1) / 3).clamp(0.0, 1.0),
-          child: Transform.scale(scale: val, child: _buildOrb()),
-        ),
-      );
-    }
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // 🔥 THE SHOCKWAVE (Sharp, fast ripple)
+        if (widget.state == OrbState.success)
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 1000),
+            curve: Curves.easeOutExpo,
+            builder: (context, val, child) => Container(
+              width: 60 + (val * 300), // Massive expansion
+              height: 60 + (val * 300),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: (1.0 - val) * 0.4),
+                  width: 0.8, // Hairline thin
+                ),
+              ),
+            ),
+          ),
 
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: 0.95 + (_ctrl.value * 0.1), // Breathe
-          child: _buildOrb(),
-        );
-      },
+        // THE ORB
+        if (widget.state == OrbState.success)
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 1.0, end: 4.0),
+            duration: const Duration(milliseconds: 1000),
+            curve: Curves.easeOutQuart,
+            builder: (_, val, child) => Opacity(
+              opacity: (1.0 - (val - 1.0) / 3.0).clamp(0.0, 1.0),
+              child: Transform.scale(scale: val, child: child),
+            ),
+            child: _buildOrbBody(isSuccess: true),
+          )
+        else
+          AnimatedBuilder(
+            animation: _ctrl,
+            builder: (context, child) => Transform.scale(
+              scale: 0.94 + (_ctrl.value * 0.08),
+              child: _buildOrbBody(),
+            ),
+          ),
+      ],
     );
   }
 
-  Widget _buildOrb() {
+  Widget _buildOrbBody({bool isSuccess = false}) {
     return Container(
-      width: 64,
-      height: 64,
+      width: 60,
+      height: 60,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const RadialGradient(
-          colors: [Colors.white, Color(0xFFAAAAAA)],
-          stops: [0.2, 1.0],
-          center: Alignment(-0.2, -0.3),
+        gradient: RadialGradient(
+          colors: [
+            Colors.white,
+            isSuccess ? Colors.white.withValues(alpha: 0.2) : const Color(0xFF777777)
+          ],
+          stops: const [0.1, 1.0],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.white.withValues(alpha: 0.3),
-            blurRadius: 32,
-            spreadRadius: 8,
-          ),
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.1),
-            blurRadius: 64,
-            spreadRadius: 24,
+            color: Colors.white.withValues(alpha: isSuccess ? 0.1 : 0.2),
+            blurRadius: isSuccess ? 80 : 30,
+            spreadRadius: isSuccess ? 30 : 5,
           ),
         ],
       ),

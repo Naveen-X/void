@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:void_space/data/models/void_item.dart';
 import 'package:void_space/data/stores/void_store.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../services/haptic_service.dart';
 
 class ItemDetailScreen extends StatelessWidget {
   final VoidItem item;
@@ -38,13 +39,14 @@ class ItemDetailScreen extends StatelessWidget {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.delete_forever_outlined, color: Colors.redAccent),
-                onPressed: () async {
-                  await VoidStore.delete(item.id);
-                  onDelete(); 
-                  if (context.mounted) Navigator.pop(context);
-                },
-              ),
+            icon: const Icon(Icons.delete_forever_outlined, color: Colors.redAccent),
+            onPressed: () async {
+              HapticService.heavy(); // Physical warning
+              await VoidStore.delete(item.id);
+              onDelete(); 
+              if (context.mounted) Navigator.pop(context);
+            },
+          ),
             ],
           ),
 
