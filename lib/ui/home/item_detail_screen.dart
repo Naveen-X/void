@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:void_space/data/models/void_item.dart';
 import 'package:void_space/data/stores/void_store.dart';
+import 'package:void_space/services/haptic_service.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../services/haptic_service.dart';
+import '../widgets/void_dialog.dart';
 
 class ItemDetailScreen extends StatelessWidget {
   final VoidItem item;
@@ -11,64 +12,80 @@ class ItemDetailScreen extends StatelessWidget {
 
   const ItemDetailScreen({super.key, required this.item, required this.onDelete});
 
+  Future<void> _confirmDelete(BuildContext context) async {
+    HapticService.warning();
+    final bool? confirm = await VoidDialog.show(
+      context: context,
+      title: "ERASE FRAGMENT?",
+      message: "This fragment will be permanently lost to the void.",
+      confirmText: "ERASE",
+      icon: Icons.delete_forever_rounded,
+    );
+
+    if (confirm == true) {
+      HapticService.heavy();
+      await VoidStore.delete(item.id);
+      onDelete(); 
+      if (context.mounted) Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          // 1. APP BAR with Image Background
           SliverAppBar(
-            expandedHeight: item.imageUrl != null ? 300 : 80,
+            expandedHeight: item.imageUrl != null ? 320 : 100,
             backgroundColor: Colors.black,
-            floating: false,
+            elevation: 0,
             pinned: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+              onPressed: () => Navigator.pop(context),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                onPressed: () => _confirmDelete(context),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: item.imageUrl != null 
                 ? Image.network(
                     item.imageUrl!, 
                     fit: BoxFit.cover,
-                    color: Colors.black.withValues(alpha: 0.3), // Darken image
+                    color: Colors.black.withValues(alpha: 0.3),
                     colorBlendMode: BlendMode.darken,
                   ) 
                 : null,
             ),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            actions: [
-              IconButton(
-            icon: const Icon(Icons.delete_forever_outlined, color: Colors.redAccent),
-            onPressed: () async {
-              HapticService.heavy(); // Physical warning
-              await VoidStore.delete(item.id);
-              onDelete(); 
-              if (context.mounted) Navigator.pop(context);
-            },
-          ),
-            ],
           ),
 
-          // 2. CONTENT
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Meta
+                  // 🔥 REMOVED: AI TAGS Display
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: Colors.white10,
-                          borderRadius: BorderRadius.circular(4),
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           item.type.toUpperCase(),
-                          style: GoogleFonts.ibmPlexMono(color: Colors.white70, fontSize: 10),
+                          style: GoogleFonts.ibmPlexMono(
+                            color: Colors.white70, 
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -79,66 +96,75 @@ class ItemDetailScreen extends StatelessWidget {
                     ],
                   ),
                   
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
 
-                  // Title
+                  // 🔥 Using original item.title
                   Text(
                     item.title,
                     style: GoogleFonts.ibmPlexSans(
                       color: Colors.white,
-                      fontSize: 32,
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      height: 1.1,
+                      height: 1.2,
                       letterSpacing: -0.5,
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
-                  // Content / Link
+                  // 🔥 Using original item.summary
                   if (item.type == 'link') ...[
-                    // The Link Itself
                     GestureDetector(
                       onTap: () => launchUrl(Uri.parse(item.content)),
-                      child: Text(
-                        item.content,
-                        style: GoogleFonts.ibmPlexMono(
-                          color: Colors.blueAccent,
-                          fontSize: 13,
-                          decoration: TextDecoration.underline,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.1)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.link, color: Colors.blueAccent, size: 18),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                item.content,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.ibmPlexMono(
+                                  color: Colors.blueAccent,
+                                  fontSize: 13,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 32),
-                    // Summary Block
                     if (item.summary.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border(left: BorderSide(color: Colors.white24, width: 2)),
-                        ),
-                        child: Text(
-                          item.summary,
-                          style: GoogleFonts.ibmPlexSans(
-                            color: Colors.white70,
-                            fontSize: 16,
-                            height: 1.6,
-                          ),
+                      Text(
+                        item.summary,
+                        style: GoogleFonts.ibmPlexSans(
+                          color: Colors.white70,
+                          fontSize: 16,
+                          height: 1.6,
                         ),
                       ),
                   ] else ...[
-                    // Just Note Content
                     Text(
                       item.content,
                       style: GoogleFonts.ibmPlexSans(
-                        color: Colors.white70,
-                        fontSize: 18,
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 15,
                         height: 1.6,
                       ),
                     ),
                   ],
 
-                  const SizedBox(height: 100), // Bottom padding
+                  const SizedBox(height: 120),
                 ],
               ),
             ),

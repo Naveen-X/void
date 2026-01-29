@@ -33,7 +33,6 @@
         </activity>
 
         <!-- SHARE HANDLER ACTIVITY (Floating Orb) -->
-        <!-- SHARE HANDLER ACTIVITY -->
         <activity
             android:name=".ShareHandlerActivity"
             android:theme="@style/ShareTheme"
@@ -46,8 +45,6 @@
             <meta-data
                 android:name="io.flutter.Entrypoint"
                 android:value="shareMain" />
-
-            <!-- We can remove the InitialRoute meta-data now, as shareMain has no routes -->
 
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

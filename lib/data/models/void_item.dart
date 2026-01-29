@@ -15,6 +15,8 @@ class VoidItem {
   final String? imageUrl;
 
   final DateTime createdAt;
+  // 🔥 REMOVED: final List<String> tags;
+  // 🔥 REMOVED: final List<double>? embedding;
 
   VoidItem({
     required this.id,
@@ -22,8 +24,10 @@ class VoidItem {
     required this.content,
     required this.title,
     required this.summary,
-    required this.imageUrl,
+    this.imageUrl,
     required this.createdAt,
+    // 🔥 REMOVED: this.tags = const [],
+    // 🔥 REMOVED: this.embedding,
   });
 
   // ---------------- JSON ----------------
@@ -37,6 +41,8 @@ class VoidItem {
       summary: json['summary'] ?? '',
       imageUrl: json['imageUrl'],
       createdAt: DateTime.parse(json['createdAt']),
+      // 🔥 REMOVED: tags: List<String>.from(json['tags'] ?? []),
+      // 🔥 REMOVED: embedding: (json['embedding'] as List?)?.map((e) => (e as num).toDouble()).toList(),
     );
   }
 
@@ -49,22 +55,26 @@ class VoidItem {
       'summary': summary,
       'imageUrl': imageUrl,
       'createdAt': createdAt.toIso8601String(),
+      // 🔥 REMOVED: 'tags': tags,
+      // 🔥 REMOVED: 'embedding': embedding,
     };
   }
 
   // ---------------- FALLBACK ----------------
 
-  factory VoidItem.fallback(String text) {
+  factory VoidItem.fallback(String text, {String type = 'note'}) {
     final uri = Uri.tryParse(text);
 
     return VoidItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      type: 'link',
+      type: type,
       content: text,
-      title: uri?.host ?? text,
+      title: uri?.host ?? text.split('\n').first,
       summary: '',
       imageUrl: null,
       createdAt: DateTime.now(),
+      // 🔥 REMOVED: tags: [],
+      // 🔥 REMOVED: embedding: null,
     );
   }
 }

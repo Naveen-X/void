@@ -28,16 +28,25 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
     await Future.delayed(const Duration(milliseconds: 600));
     if (mounted) setState(() => _orbState = OrbState.processing);
 
-    final text = await ShareBridge.getSharedText();
-    if (text == null || text.isEmpty) { _close(); return; }
-
-    VoidItem item;
-    try {
-      item = await LinkMetadataService.fetch(text).timeout(const Duration(seconds: 5));
-    } catch (_) {
-      item = VoidItem.fallback(text);
+    final rawText = await ShareBridge.getSharedText();
+    if (rawText == null || rawText.isEmpty) { 
+      _close(); 
+      return; 
     }
 
+    VoidItem item;
+
+    // 🔥 Reverted to basic URL detection
+    if (rawText.startsWith('http')) {
+      try {
+        item = await LinkMetadataService.fetch(rawText).timeout(const Duration(seconds: 5));
+      } catch (_) {
+        item = VoidItem.fallback(rawText, type: 'link');
+      }
+    } else {
+      item = VoidItem.fallback(rawText, type: 'note');
+    }
+    
     await VoidStore.add(item);
     HapticService.success();
 
@@ -61,14 +70,13 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        // 🔥 THE IMMERSIVE VIGNETTE (Tunnel Effect)
         decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.center,
             radius: 1.0,
             colors: [
-              Colors.black.withValues(alpha: 0.7), // Center is clearer
-              Colors.black.withValues(alpha: 1.0), // Edges are pitch black
+              Colors.black.withValues(alpha: 0.92),
+              Colors.black.withValues(alpha: 0.70),
             ],
             stops: const [0.2, 0.9],
           ),

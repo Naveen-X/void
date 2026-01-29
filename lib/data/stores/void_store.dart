@@ -44,4 +44,15 @@ class VoidStore {
     list.removeWhere((item) => item['id'] == id);
     await _file.writeAsString(jsonEncode(list));
   }
+
+  static Future<void> deleteMany(Set<String> ids) async {
+    await init();
+    final raw = await _file.readAsString();
+    List list = jsonDecode(raw);
+
+    // Remove all items whose ID is in the set
+    list.removeWhere((item) => ids.contains(item['id']));
+
+    await _file.writeAsString(jsonEncode(list));
+  }
 }
