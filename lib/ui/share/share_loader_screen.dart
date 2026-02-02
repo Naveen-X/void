@@ -1,3 +1,5 @@
+// ui/share/share_loader_screen.dart
+// Update this existing file
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +8,7 @@ import 'package:void_space/data/stores/void_store.dart';
 import 'package:void_space/services/link_metadata_service.dart';
 import 'package:void_space/services/share_bridge.dart';
 import 'package:void_space/services/haptic_service.dart';
+import 'package:void_space/services/ai_service.dart'; // Import AI service
 import 'orb_loader.dart';
 
 class ShareLoaderScreen extends StatefulWidget {
@@ -29,34 +32,54 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
     if (mounted) setState(() => _orbState = OrbState.processing);
 
     final rawText = await ShareBridge.getSharedText();
-    if (rawText == null || rawText.isEmpty) { 
-      _close(); 
-      return; 
+    if (rawText == null || rawText.isEmpty) {
+      _close();
+      return;
     }
 
     VoidItem item;
+    AIContext aiContext;
 
-    // 🔥 Reverted to basic URL detection
     if (rawText.startsWith('http')) {
       try {
         item = await LinkMetadataService.fetch(rawText).timeout(const Duration(seconds: 5));
       } catch (_) {
+        // If metadata fetch fails, fallback and then analyze
         item = VoidItem.fallback(rawText, type: 'link');
+        aiContext = await AIService.analyze(item.title, item.summary);
+        item = VoidItem(
+          id: item.id, type: item.type, content: item.content,
+          title: aiContext.title, summary: aiContext.tldr,
+          imageUrl: item.imageUrl, createdAt: item.createdAt,
+          tags: aiContext.tags, embedding: aiContext.embedding,
+        );
       }
     } else {
-      item = VoidItem.fallback(rawText, type: 'note');
+      // It's a note
+      aiContext = await AIService.analyze(rawText.split('\n').first, rawText);
+      item = VoidItem(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        type: 'note',
+        content: rawText,
+        title: aiContext.title,
+        summary: aiContext.tldr,
+        imageUrl: null,
+        createdAt: DateTime.now(),
+        tags: aiContext.tags,
+        embedding: aiContext.embedding,
+      );
     }
-    
+
     await VoidStore.add(item);
     HapticService.success();
 
     if (mounted) {
       setState(() {
         _orbState = OrbState.success;
-        _showToast = true; 
+        _showToast = true;
       });
     }
-    
+
     await Future.delayed(const Duration(milliseconds: 2200));
     _close();
   }
@@ -66,7 +89,7 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent, 
+      backgroundColor: Colors.transparent,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -86,7 +109,7 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               OrbLoader(state: _orbState),
-              const SizedBox(height: 40), 
+              const SizedBox(height: 40),
               AnimatedOpacity(
                 duration: const Duration(milliseconds: 600),
                 opacity: _showToast ? 1.0 : 0.0,

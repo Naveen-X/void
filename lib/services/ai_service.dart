@@ -1,15 +1,15 @@
-// lib/services/ai_service.dart
-
+// services/ai_service.dart
+// Update this existing file
+// Re-introduce tags and add a placeholder for embedding generation
 class AIContext {
   final String title;
   final String tldr;
   final List<String> tags;
-  AIContext({required this.title, required this.tldr, required this.tags});
+  final List<double>? embedding; // Re-added
+  AIContext({required this.title, required this.tldr, required this.tags, this.embedding});
 }
 
 class AIService {
-  // We don't need a heavy LLM engine for this basic tagging.
-  // The 'embedding_service' will handle the actual embedding.
   static Future<void> init() async {
     // No specific initialization for this simple tagger.
     // It's mostly a placeholder for when we do integrate a cloud LLM or a small local LLM.
@@ -36,10 +36,15 @@ class AIService {
       generatedTags.add("General");
     }
 
+    // Placeholder for embedding generation
+    // In a real scenario, this would call an embedding model
+    final List<double>? generatedEmbedding = null; // For now, no actual embedding generated
+
     return AIContext(
       title: rawTitle,    // Keep original title
       tldr: rawSummary,   // Keep original summary (this is what's displayed as summary)
       tags: generatedTags.toSet().toList(), // Ensure unique tags
+      embedding: generatedEmbedding,
     );
   }
 }

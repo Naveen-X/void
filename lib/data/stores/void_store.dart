@@ -1,58 +1,28 @@
-import 'dart:convert';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+import '../database/void_database.dart';
 import '../models/void_item.dart';
 
 class VoidStore {
-  static late File _file;
-  static bool _inited = false;
-
   static Future<void> init() async {
-    if (_inited) return;
-
-    final dir = await getApplicationDocumentsDirectory();
-    _file = File('${dir.path}/void_items.json');
-
-    if (!_file.existsSync()) {
-      await _file.writeAsString('[]');
-    }
-
-    _inited = true;
+    await VoidDatabase.init();
   }
 
   static Future<List<VoidItem>> all() async {
-    await init();
-    final raw = await _file.readAsString();
-    final list = jsonDecode(raw) as List;
-    return list.map((e) => VoidItem.fromJson(e)).toList().reversed.toList();
+    return await VoidDatabase.getAllItems();
   }
 
   static Future<void> add(VoidItem item) async {
-    await init();
-    final raw = await _file.readAsString();
-    final list = jsonDecode(raw) as List;
-
-    list.add(item.toJson());
-
-    await _file.writeAsString(jsonEncode(list));
+    await VoidDatabase.insertItem(item);
   }
 
   static Future<void> delete(String id) async {
-    await init();
-    final raw = await _file.readAsString();
-    List list = jsonDecode(raw);
-    list.removeWhere((item) => item['id'] == id);
-    await _file.writeAsString(jsonEncode(list));
+    await VoidDatabase.deleteItem(id);
   }
 
   static Future<void> deleteMany(Set<String> ids) async {
-    await init();
-    final raw = await _file.readAsString();
-    List list = jsonDecode(raw);
+    await VoidDatabase.deleteManyItems(ids);
+  }
 
-    // Remove all items whose ID is in the set
-    list.removeWhere((item) => ids.contains(item['id']));
-
-    await _file.writeAsString(jsonEncode(list));
+  static Future<List<VoidItem>> search(String query) async {
+    return await VoidDatabase.searchItems(query);
   }
 }

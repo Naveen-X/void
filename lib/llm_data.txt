@@ -1,0 +1,2354 @@
+# LLM Data Collection
+Generated at: 2026-02-02 07:04:16 UTC
+Total files processed: 21
+Total size: 71.6KB
+
+<file_tree>
+└── ./
+    ├── app/
+    │   ├── void_app.dart (736B)
+    │   └── void_route.dart (1.6KB)
+    ├── data/
+    │   ├── models/
+    │   │   └── void_item.dart (2.0KB)
+    │   └── stores/
+    │       └── void_store.dart (1.5KB)
+    ├── main.dart (1021B)
+    ├── services/
+    │   ├── ai_service.dart (1.6KB)
+    │   ├── haptic_service.dart (369B)
+    │   ├── link_metadata_service.dart (1.1KB)
+    │   ├── security_service.dart (1.1KB)
+    │   └── share_bridge.dart (566B)
+    └── ui/
+        ├── home/
+        │   ├── empty_state.dart (2.4KB)
+        │   ├── home_screen.dart (13.0KB)
+        │   ├── item_detail_screen.dart (6.4KB)
+        │   ├── manual_entry_overlay.dart (3.2KB)
+        │   ├── messy_card.dart (6.2KB)
+        │   └── void_header.dart (2.3KB)
+        ├── profile/
+        │   └── profile_screen.dart (10.5KB)
+        ├── share/
+        │   ├── orb_loader.dart (3.1KB)
+        │   └── share_loader_screen.dart (4.1KB)
+        ├── splash/
+        │   └── splash_screen.dart (4.5KB)
+        └── widgets/
+            └── void_dialog.dart (4.4KB)
+</file_tree>
+
+<file="void_app.dart" filepath="app/void_app.dart" size="736B">
+import 'package:flutter/material.dart';
+import '../ui/home/home_screen.dart';
+import '../ui/share/share_loader_screen.dart';
+import '../ui/splash/splash_screen.dart';
+
+class VoidApp extends StatelessWidget {
+  const VoidApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.dark,
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black,
+      ),
+      // Default to Splash
+      initialRoute: '/',
+      routes: {
+        '/': (_) => const SplashScreen(),
+        '/home': (_) => const HomeScreen(),
+        '/share': (_) => const ShareLoaderScreen(),
+      },
+    );
+  }
+}
+</file>
+
+<file="void_route.dart" filepath="app/void_route.dart" size="1.6KB">
+import 'package:flutter/material.dart';
+
+class VoidSurfaceRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+  VoidSurfaceRoute({required this.page})
+    : super(
+        opaque: false,
+        barrierColor: Colors.black.withValues(alpha: 0.92),
+        transitionDuration: const Duration(milliseconds: 260),
+        reverseTransitionDuration: const Duration(milliseconds: 200),
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curve = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          final t = curve.value;
+
+          return FadeTransition(
+            opacity: curve,
+
+            child: AnimatedBuilder(
+              animation: curve,
+              builder: (context, _) {
+                return Transform.scale(
+                  scale: 0.98 + (t * 0.02),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: 0.30 * curve.value,
+                          ),
+                          blurRadius: 48 * curve.value,
+                          spreadRadius: 6 * curve.value,
+                        ),
+                      ],
+                    ),
+                    child: child,
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      );
+}
+</file>
+
+<file="void_item.dart" filepath="data/models/void_item.dart" size="2.0KB">
+class VoidItem {
+  final String id;
+
+  /// note | link | image
+  final String type;
+
+  /// Main payload
+  /// - note  → text
+  /// - link  → url
+  /// - image → base64 / path
+  final String content;
+
+  final String title;
+  final String summary;
+  final String? imageUrl;
+
+  final DateTime createdAt;
+  // 🔥 REMOVED: final List<String> tags;
+  // 🔥 REMOVED: final List<double>? embedding;
+
+  VoidItem({
+    required this.id,
+    required this.type,
+    required this.content,
+    required this.title,
+    required this.summary,
+    this.imageUrl,
+    required this.createdAt,
+    // 🔥 REMOVED: this.tags = const [],
+    // 🔥 REMOVED: this.embedding,
+  });
+
+  // ---------------- JSON ----------------
+
+  factory VoidItem.fromJson(Map<String, dynamic> json) {
+    return VoidItem(
+      id: json['id'],
+      type: json['type'],
+      content: json['content'],
+      title: json['title'] ?? '',
+      summary: json['summary'] ?? '',
+      imageUrl: json['imageUrl'],
+      createdAt: DateTime.parse(json['createdAt']),
+      // 🔥 REMOVED: tags: List<String>.from(json['tags'] ?? []),
+      // 🔥 REMOVED: embedding: (json['embedding'] as List?)?.map((e) => (e as num).toDouble()).toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'content': content,
+      'title': title,
+      'summary': summary,
+      'imageUrl': imageUrl,
+      'createdAt': createdAt.toIso8601String(),
+      // 🔥 REMOVED: 'tags': tags,
+      // 🔥 REMOVED: 'embedding': embedding,
+    };
+  }
+
+  // ---------------- FALLBACK ----------------
+
+  factory VoidItem.fallback(String text, {String type = 'note'}) {
+    final uri = Uri.tryParse(text);
+
+    return VoidItem(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      type: type,
+      content: text,
+      title: uri?.host ?? text.split('\n').first,
+      summary: '',
+      imageUrl: null,
+      createdAt: DateTime.now(),
+      // 🔥 REMOVED: tags: [],
+      // 🔥 REMOVED: embedding: null,
+    );
+  }
+}
+</file>
+
+<file="void_store.dart" filepath="data/stores/void_store.dart" size="1.5KB">
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import '../models/void_item.dart';
+
+class VoidStore {
+  static late File _file;
+  static bool _inited = false;
+
+  static Future<void> init() async {
+    if (_inited) return;
+
+    final dir = await getApplicationDocumentsDirectory();
+    _file = File('${dir.path}/void_items.json');
+
+    if (!_file.existsSync()) {
+      await _file.writeAsString('[]');
+    }
+
+    _inited = true;
+  }
+
+  static Future<List<VoidItem>> all() async {
+    await init();
+    final raw = await _file.readAsString();
+    final list = jsonDecode(raw) as List;
+    return list.map((e) => VoidItem.fromJson(e)).toList().reversed.toList();
+  }
+
+  static Future<void> add(VoidItem item) async {
+    await init();
+    final raw = await _file.readAsString();
+    final list = jsonDecode(raw) as List;
+
+    list.add(item.toJson());
+
+    await _file.writeAsString(jsonEncode(list));
+  }
+
+  static Future<void> delete(String id) async {
+    await init();
+    final raw = await _file.readAsString();
+    List list = jsonDecode(raw);
+    list.removeWhere((item) => item['id'] == id);
+    await _file.writeAsString(jsonEncode(list));
+  }
+
+  static Future<void> deleteMany(Set<String> ids) async {
+    await init();
+    final raw = await _file.readAsString();
+    List list = jsonDecode(raw);
+
+    // Remove all items whose ID is in the set
+    list.removeWhere((item) => ids.contains(item['id']));
+
+    await _file.writeAsString(jsonEncode(list));
+  }
+}
+</file>
+
+<file="main.dart" filepath="main.dart" size="1021B">
+import 'package:flutter/material.dart';
+import 'package:void_space/ui/share/share_loader_screen.dart';
+import 'app/void_app.dart';
+import 'data/stores/void_store.dart';
+
+// 1. STANDARD ENTRY POINT (App Icon)
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await VoidStore.init();
+  runApp(const VoidApp());
+}
+
+// 2. 🔥 DEDICATED SHARE ENTRY POINT (Intent)
+// This must be top-level and annotated.
+@pragma('vm:entry-point')
+void shareMain() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const ShareApp());
+}
+
+class ShareApp extends StatelessWidget {
+  const ShareApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      useInheritedMediaQuery: true, // 🔥 FIX: Respect the floating window size
+      themeMode: ThemeMode.dark,
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black,
+      ),
+      home: const ShareLoaderScreen(),
+    );
+  }
+}
+</file>
+
+<file="ai_service.dart" filepath="services/ai_service.dart" size="1.6KB">
+// lib/services/ai_service.dart
+
+class AIContext {
+  final String title;
+  final String tldr;
+  final List<String> tags;
+  AIContext({required this.title, required this.tldr, required this.tags});
+}
+
+class AIService {
+  // We don't need a heavy LLM engine for this basic tagging.
+  // The 'embedding_service' will handle the actual embedding.
+  static Future<void> init() async {
+    // No specific initialization for this simple tagger.
+    // It's mostly a placeholder for when we do integrate a cloud LLM or a small local LLM.
+  }
+
+  static Future<AIContext> analyze(String rawTitle, String rawSummary) async {
+    // For now, simple keyword-based tagging and using original title/summary.
+    List<String> generatedTags = [];
+    String combinedText = "$rawTitle $rawSummary".toLowerCase();
+
+    if (combinedText.contains("design") || combinedText.contains("ui") || combinedText.contains("figma")) {
+      generatedTags.add("Design");
+    }
+    if (combinedText.contains("code") || combinedText.contains("tech") || combinedText.contains("programming")) {
+      generatedTags.add("Tech");
+    }
+    if (combinedText.contains("game") || combinedText.contains("gaming") || combinedText.contains("esports")) {
+      generatedTags.add("Gaming");
+    }
+    if (combinedText.contains("tutorial") || combinedText.contains("how to")) {
+      generatedTags.add("Tutorial");
+    }
+    if (generatedTags.isEmpty) {
+      generatedTags.add("General");
+    }
+
+    return AIContext(
+      title: rawTitle,    // Keep original title
+      tldr: rawSummary,   // Keep original summary (this is what's displayed as summary)
+      tags: generatedTags.toSet().toList(), // Ensure unique tags
+    );
+  }
+}
+</file>
+
+<file="haptic_service.dart" filepath="services/haptic_service.dart" size="369B">
+import 'package:flutter/services.dart';
+
+class HapticService {
+  static void light() => HapticFeedback.lightImpact();
+  static void medium() => HapticFeedback.mediumImpact();
+  static void heavy() => HapticFeedback.heavyImpact();
+  static void success() => HapticFeedback.vibrate(); // Double pulse on some devices
+  static void warning() => HapticFeedback.vibrate();
+}
+</file>
+
+<file="link_metadata_service.dart" filepath="services/link_metadata_service.dart" size="1.1KB">
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:html/parser.dart' as html;
+
+import 'package:void_space/data/models/void_item.dart';
+
+class LinkMetadataService {
+  static Future<VoidItem> fetch(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      return VoidItem.fallback(url);
+    }
+
+    final res = await http.get(uri);
+    final body = utf8.decode(res.bodyBytes);
+
+    final doc = html.parse(body);
+
+    String? pickMeta(String key) {
+      return doc
+          .querySelector('meta[property="$key"]')
+          ?.attributes['content'];
+    }
+
+    final title =
+        pickMeta('og:title') ??
+        doc.querySelector('title')?.text ??
+        uri.host;
+
+    final summary =
+        pickMeta('og:description') ??
+        pickMeta('description') ??
+        '';
+
+    final imageUrl = pickMeta('og:image');
+
+    return VoidItem(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      type: 'link',
+      content: url,
+      title: title.trim(),
+      summary: summary.trim(),
+      imageUrl: imageUrl,
+      createdAt: DateTime.now(),
+    );
+  }
+}
+</file>
+
+<file="security_service.dart" filepath="services/security_service.dart" size="1.1KB">
+import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class SecurityService {
+  static final LocalAuthentication _auth = LocalAuthentication();
+  static const String _lockKey = "biometric_lock_enabled";
+
+  static Future<bool> isLockEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_lockKey) ?? false;
+  }
+
+  static Future<void> setLockEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_lockKey, value);
+  }
+
+  static Future<bool> authenticate() async {
+    try {
+      final bool canAuthenticateWithBiometrics = await _auth.canCheckBiometrics;
+      final bool canAuthenticate = canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
+
+      if (!canAuthenticate) return true; 
+
+      return await _auth.authenticate(
+        localizedReason: 'Handshake required to enter the void',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: false, // Allows PIN/Pattern fallback
+        ),
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+}
+</file>
+
+<file="share_bridge.dart" filepath="services/share_bridge.dart" size="566B">
+import 'package:flutter/services.dart';
+
+class ShareBridge {
+  static const MethodChannel _channel = MethodChannel('void/share');
+
+  /// 1. Ask Native if there is text waiting (The Pull)
+  static Future<String?> getSharedText() async {
+    try {
+      final String? text = await _channel.invokeMethod('getSharedText');
+      return text;
+    } on PlatformException catch (_) {
+      return null;
+    }
+  }
+
+  /// 2. Tell Native we are finished saving
+  static Future<void> close() async {
+    try {
+      await _channel.invokeMethod('done');
+    } catch (_) {}
+  }
+}
+</file>
+
+<file="empty_state.dart" filepath="ui/home/empty_state.dart" size="2.4KB">
+import 'package:flutter/material.dart';
+
+class VoidEmptyState extends StatelessWidget {
+  const VoidEmptyState({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.10),
+                    blurRadius: 80,
+                    spreadRadius: 24,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF111111),
+                    borderRadius: BorderRadius.circular(26),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome_outlined,
+                    color: Colors.white70,
+                    size: 28,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 36),
+            const Text(
+              'Deep Silence',
+              style: TextStyle(
+                fontSize: 28,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w300,
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 24, vertical: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.18),
+                ),
+              ),
+              child: const Text(
+                'CAPTURE YOUR FIRST FRAGMENT',
+                style: TextStyle(
+                  fontSize: 10,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white54,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file="home_screen.dart" filepath="ui/home/home_screen.dart" size="13.0KB">
+import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:void_space/data/models/void_item.dart';
+import 'package:void_space/data/stores/void_store.dart';
+import 'package:void_space/services/haptic_service.dart';
+import '../widgets/void_dialog.dart';
+import 'empty_state.dart';
+import 'messy_card.dart';
+import 'void_header.dart';
+import 'manual_entry_overlay.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  List<VoidItem> _allItems = [];
+  List<VoidItem> _filteredItems = [];
+  bool _loading = true;
+
+  // SELECTION STATE
+  final Set<String> _selectedIds = {};
+  bool get _isSelectionMode => _selectedIds.isNotEmpty;
+
+  // CONTROLLERS & NODES
+  final TextEditingController _searchCtrl = TextEditingController();
+  final ScrollController _scrollCtrl = ScrollController();
+  final FocusNode _searchFocusNode = FocusNode(); // Keep this focus node for the search bar itself
+  final ValueNotifier<double> _headerBlurNotifier = ValueNotifier(0.0);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _load();
+    _searchCtrl.addListener(_onSearch);
+    _scrollCtrl.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _searchCtrl.dispose();
+    _scrollCtrl.dispose();
+    _headerBlurNotifier.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final double newBlur = (_scrollCtrl.offset / 60).clamp(0.0, 1.0);
+    if (_headerBlurNotifier.value != newBlur) {
+      _headerBlurNotifier.value = newBlur;
+    }
+  }
+
+  void _onSearch() {
+    final query = _searchCtrl.text.toLowerCase();
+    setState(() {
+      _filteredItems = _allItems.where((item) {
+        return item.title.toLowerCase().contains(query) || 
+               item.content.toLowerCase().contains(query) ||
+               item.summary.toLowerCase().contains(query);
+      }).toList();
+    });
+  }
+
+  void _toggleSelection(String id) {
+    _searchFocusNode.unfocus();
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _load() async {
+    final items = await VoidStore.all();
+    if (!mounted) return;
+    setState(() {
+      _allItems = items;
+      _filteredItems = items;
+      _loading = false;
+    });
+  }
+
+  Future<void> _confirmDelete() async {
+    HapticService.warning();
+    final bool? confirm = await VoidDialog.show(
+      context: context,
+      title: "PURGE ${_selectedIds.length} FRAGMENTS?",
+      message: "This action will permanently erase these items from your local vault.",
+      confirmText: "PURGE",
+    );
+
+    if (confirm == true) {
+      HapticService.heavy();
+      await VoidStore.deleteMany(_selectedIds);
+      setState(() => _selectedIds.clear());
+      _load();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _load();
+      _searchFocusNode.unfocus();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final bool isKeyboardOpen = keyboardHeight > 0;
+
+    return PopScope(
+      canPop: !_isSelectionMode,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_isSelectionMode) {
+          HapticService.light();
+          setState(() => _selectedIds.clear());
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        resizeToAvoidBottomInset: false, 
+        body: Stack(
+          children: [
+            _buildMainContent(),
+
+            Positioned(
+              bottom: 0, left: 0, right: 0, height: 240,
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.8),
+                        Colors.black,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            ValueListenableBuilder<double>(
+              valueListenable: _headerBlurNotifier,
+              builder: (context, blurValue, _) {
+                return Positioned(
+                  top: 0, left: 0, right: 0,
+                  child: VoidHeader(blurOpacity: blurValue),
+                );
+              },
+            ),
+
+            if (!_loading) // Always show controls, even if empty, for the FAB
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeOutQuart,
+                bottom: (isKeyboardOpen ? keyboardHeight + 16 : MediaQuery.of(context).padding.bottom + 24),
+                left: 20, right: 20,
+                child: _buildBottomControls(isKeyboardOpen),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMainContent() {
+    if (_loading) return const Center(child: CircularProgressIndicator(strokeWidth: 1, color: Colors.white24));
+    
+    if (_allItems.isEmpty) {
+      return const VoidEmptyState();
+    }
+
+    return MasonryGridView.count(
+      controller: _scrollCtrl,
+      physics: const BouncingScrollPhysics(),
+      crossAxisCount: 2,
+      mainAxisSpacing: 14,
+      crossAxisSpacing: 14,
+      padding: const EdgeInsets.fromLTRB(16, 140, 16, 220),
+      itemCount: _filteredItems.length,
+      itemBuilder: (context, index) {
+        final item = _filteredItems[index];
+        return MessyCard(
+          key: ValueKey(item.id),
+          item: item,
+          onUpdate: _load,
+          isSelected: _selectedIds.contains(item.id),
+          isSelectionMode: _isSelectionMode,
+          onSelect: _toggleSelection,
+          searchFocusNode: _searchFocusNode, // Pass the focus node
+        );
+      },
+    );
+  }
+
+  Widget _buildBottomControls(bool isKeyboardOpen) {
+    // If vault is empty, show only the FAB
+    if (_allItems.isEmpty) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: _buildRollingActionButton(isKeyboardOpen), // Use the rolling button for consistency
+      );
+    }
+
+    // If vault has items, show the Rolling Bar
+    return Row(
+      children: [
+        // THE PILL (Search <-> Selection Info)
+        Expanded(child: _buildRollingMainPill(isKeyboardOpen)),
+        
+        // THE FAB (Add <-> Delete)
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          width: isKeyboardOpen ? 0 : 72, 
+          margin: EdgeInsets.only(left: isKeyboardOpen ? 0 : 12),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: isKeyboardOpen ? 0.0 : 1.0, 
+            child: _buildRollingActionButton(isKeyboardOpen),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRollingMainPill(bool isKeyboardOpen) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOutQuart,
+      height: 60,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: _isSelectionMode ? Colors.white : const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _isSelectionMode ? Colors.white : Colors.white.withValues(alpha: 0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: _isSelectionMode ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.4),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          )
+        ],
+      ),
+      child: Stack(
+        children: [
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOutQuart,
+            alignment: _isSelectionMode ? const Alignment(0, -6.0) : Alignment.center,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: _isSelectionMode ? 0.0 : 1.0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                child: Row(
+                  children: [
+                    Icon(Icons.search, color: Colors.white.withValues(alpha: 0.2), size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchCtrl,
+                        focusNode: _searchFocusNode,
+                        style: const TextStyle(color: Colors.white, fontSize: 15),
+                        cursorColor: Colors.white,
+                        decoration: const InputDecoration(
+                          hintText: "Search the void...",
+                          hintStyle: TextStyle(color: Colors.white10),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                    if (_searchCtrl.text.isNotEmpty)
+                      GestureDetector(
+                        onTap: () => _searchCtrl.clear(),
+                        child: const Icon(Icons.close_rounded, color: Colors.white24, size: 18),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOutQuart,
+            alignment: _isSelectionMode ? Alignment.center : const Alignment(0, 6.0),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: _isSelectionMode ? 1.0 : 0.0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Text(
+                      "${_selectedIds.length} SELECTED", 
+                      style: GoogleFonts.ibmPlexMono(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1)
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () {
+                        HapticService.light();
+                        setState(() => _selectedIds.clear());
+                      },
+                      child: Text("CANCEL", style: GoogleFonts.ibmPlexMono(color: Colors.black38, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRollingActionButton(bool isKeyboardOpen) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOutQuart,
+      width: 60, height: 60,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: _isSelectionMode ? Colors.redAccent : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: _isSelectionMode ? Colors.redAccent.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.15),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          )
+        ],
+      ),
+      child: Stack(
+        children: [
+          // ADD ICON
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            opacity: _isSelectionMode ? 0.0 : 1.0,
+            child: AnimatedAlign(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOutQuart,
+              alignment: _isSelectionMode ? const Alignment(0, -6.0) : Alignment.center,
+              child: IconButton(
+                icon: const Icon(Icons.add, color: Colors.black, size: 28),
+                onPressed: () {
+                  _searchFocusNode.unfocus();
+                  HapticService.light();
+                  _showManualEntry();
+                },
+              ),
+            ),
+          ),
+
+          // DELETE ICON
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            opacity: _isSelectionMode ? 1.0 : 0.0,
+            child: AnimatedAlign(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOutQuart,
+              alignment: _isSelectionMode ? Alignment.center : const Alignment(0, 6.0),
+              child: IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 26),
+                onPressed: _confirmDelete,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showManualEntry() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ManualEntryOverlay(onSave: _load),
+    );
+  }
+}
+</file>
+
+<file="item_detail_screen.dart" filepath="ui/home/item_detail_screen.dart" size="6.4KB">
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:void_space/data/models/void_item.dart';
+import 'package:void_space/data/stores/void_store.dart';
+import 'package:void_space/services/haptic_service.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../widgets/void_dialog.dart';
+
+class ItemDetailScreen extends StatelessWidget {
+  final VoidItem item;
+  final VoidCallback onDelete;
+
+  const ItemDetailScreen({super.key, required this.item, required this.onDelete});
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    HapticService.warning();
+    final bool? confirm = await VoidDialog.show(
+      context: context,
+      title: "ERASE FRAGMENT?",
+      message: "This fragment will be permanently lost to the void.",
+      confirmText: "ERASE",
+      icon: Icons.delete_forever_rounded,
+    );
+
+    if (confirm == true) {
+      HapticService.heavy();
+      await VoidStore.delete(item.id);
+      onDelete(); 
+      if (context.mounted) Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: item.imageUrl != null ? 320 : 100,
+            backgroundColor: Colors.black,
+            elevation: 0,
+            pinned: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+              onPressed: () => Navigator.pop(context),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                onPressed: () => _confirmDelete(context),
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: item.imageUrl != null 
+                ? Image.network(
+                    item.imageUrl!, 
+                    fit: BoxFit.cover,
+                    color: Colors.black.withValues(alpha: 0.3),
+                    colorBlendMode: BlendMode.darken,
+                  ) 
+                : null,
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 🔥 REMOVED: AI TAGS Display
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          item.type.toUpperCase(),
+                          style: GoogleFonts.ibmPlexMono(
+                            color: Colors.white70, 
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        item.createdAt.toString().substring(0, 16),
+                        style: GoogleFonts.ibmPlexMono(color: Colors.white24, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 28),
+
+                  // 🔥 Using original item.title
+                  Text(
+                    item.title,
+                    style: GoogleFonts.ibmPlexSans(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // 🔥 Using original item.summary
+                  if (item.type == 'link') ...[
+                    GestureDetector(
+                      onTap: () => launchUrl(Uri.parse(item.content)),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.1)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.link, color: Colors.blueAccent, size: 18),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                item.content,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.ibmPlexMono(
+                                  color: Colors.blueAccent,
+                                  fontSize: 13,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    if (item.summary.isNotEmpty)
+                      Text(
+                        item.summary,
+                        style: GoogleFonts.ibmPlexSans(
+                          color: Colors.white70,
+                          fontSize: 16,
+                          height: 1.6,
+                        ),
+                      ),
+                  ] else ...[
+                    Text(
+                      item.content,
+                      style: GoogleFonts.ibmPlexSans(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 15,
+                        height: 1.6,
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 120),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+</file>
+
+<file="manual_entry_overlay.dart" filepath="ui/home/manual_entry_overlay.dart" size="3.2KB">
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../data/models/void_item.dart';
+import '../../data/stores/void_store.dart';
+import '../../services/link_metadata_service.dart';
+import '../../services/haptic_service.dart';
+
+class ManualEntryOverlay extends StatefulWidget {
+  final VoidCallback onSave;
+  const ManualEntryOverlay({super.key, required this.onSave});
+
+  @override
+  State<ManualEntryOverlay> createState() => _ManualEntryOverlayState();
+}
+
+class _ManualEntryOverlayState extends State<ManualEntryOverlay> {
+  final TextEditingController _controller = TextEditingController();
+  bool _isProcessing = false;
+
+  Future<void> _handleSave() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() => _isProcessing = true);
+    HapticService.medium();
+
+    VoidItem item;
+    // Check if it's a link
+    if (text.startsWith('http')) {
+      try {
+        item = await LinkMetadataService.fetch(text).timeout(const Duration(seconds: 5));
+      } catch (_) {
+        item = VoidItem.fallback(text);
+      }
+    } else {
+      // It's a note
+      item = VoidItem(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        type: 'note',
+        content: text,
+        title: text.split('\n').first,
+        summary: '',
+        imageUrl: null,
+        createdAt: DateTime.now(),
+      );
+    }
+
+    await VoidStore.add(item);
+    HapticService.success();
+    widget.onSave();
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Color(0xFF111111),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _isProcessing ? "// PROCESSING_FRAGMENT..." : "// INPUT_NEW_FRAGMENT",
+              style: GoogleFonts.ibmPlexMono(color: Colors.white24, fontSize: 10),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              maxLines: 4,
+              minLines: 1,
+              style: GoogleFonts.ibmPlexSans(color: Colors.white, fontSize: 18),
+              decoration: InputDecoration(
+                hintText: "paste link or type note...",
+                hintStyle: const TextStyle(color: Colors.white10),
+                border: InputBorder.none,
+                suffixIcon: _isProcessing 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 1, color: Colors.white24))
+                  : IconButton(
+                      icon: const Icon(Icons.arrow_upward_rounded, color: Colors.white),
+                      onPressed: _handleSave,
+                    ),
+              ),
+              onSubmitted: (_) => _handleSave(),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file="messy_card.dart" filepath="ui/home/messy_card.dart" size="6.2KB">
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../data/models/void_item.dart';
+import '../../services/haptic_service.dart';
+import 'item_detail_screen.dart';
+
+class MessyCard extends StatelessWidget {
+  final VoidItem item;
+  final VoidCallback onUpdate;
+  final bool isSelected;
+  final bool isSelectionMode;
+  final Function(String) onSelect;
+  final FocusNode searchFocusNode; 
+
+  const MessyCard({
+    super.key, 
+    required this.item, 
+    required this.onUpdate,
+    this.isSelected = false,
+    this.isSelectionMode = false,
+    required this.onSelect,
+    required this.searchFocusNode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final rnd = Random(item.id.hashCode);
+    final double bottomStagger = 5.0 + rnd.nextInt(20); 
+
+    return GestureDetector(
+      onLongPress: () {
+        searchFocusNode.unfocus();
+        HapticService.medium();
+        onSelect(item.id);
+      },
+      onTap: () {
+        searchFocusNode.unfocus();
+        if (isSelectionMode) {
+          HapticService.light();
+          onSelect(item.id);
+        } else {
+          HapticService.light();
+          Navigator.push(
+            context, 
+            MaterialPageRoute(builder: (_) => ItemDetailScreen(item: item, onDelete: onUpdate))
+          );
+        }
+      },
+      child: AnimatedScale(
+        scale: isSelected ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          constraints: const BoxConstraints(minHeight: 100),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: const Color(0xFF161616),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.08),
+              width: isSelected ? 1.5 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isSelected ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              )
+            ],
+          ),
+          child: Stack(
+            children: [
+              Opacity(
+                opacity: isSelected ? 0.4 : 1.0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
+                      Image.network(
+                        item.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (item.type == 'link')
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Text(
+                                Uri.parse(item.content).host.replaceFirst('www.', '').toLowerCase(),
+                                style: GoogleFonts.ibmPlexMono(
+                                  color: Colors.white24, 
+                                  fontSize: 9, 
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          Text(
+                            item.title.isEmpty ? "Untitled Fragment" : item.title,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.ibmPlexSans(
+                              color: Colors.white, 
+                              fontSize: 14, 
+                              fontWeight: FontWeight.w600, 
+                              height: 1.2
+                            ),
+                          ),
+                          if (item.summary.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Text(
+                                item.summary,
+                                maxLines: 4,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.ibmPlexSans(
+                                  color: Colors.white54,
+                                  fontSize: 11,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          // 🔥 REMOVED: AI Tags Display
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                      child: Row(
+                        children: [
+                          Icon(item.type == 'link' ? Icons.link : Icons.notes_rounded, size: 10, color: Colors.white10),
+                          const SizedBox(width: 8),
+                          Text(
+                            "${item.createdAt.day}/${item.createdAt.month}",
+                            style: GoogleFonts.ibmPlexMono(color: Colors.white10, fontSize: 9),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: bottomStagger),
+                  ],
+                ),
+              ),
+              if (isSelected)
+                Positioned(
+                  top: 12, right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: const Icon(Icons.check, size: 12, color: Colors.black),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file="void_header.dart" filepath="ui/home/void_header.dart" size="2.3KB">
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../app/void_route.dart';
+import '../profile/profile_screen.dart';
+
+class VoidHeader extends StatelessWidget {
+  final double blurOpacity;
+
+  const VoidHeader({super.key, this.blurOpacity = 0.0});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: 15 * blurOpacity,
+          sigmaY: 15 * blurOpacity,
+        ),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 100,
+          padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.4 * blurOpacity),
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.white.withOpacity(0.05 * blurOpacity),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Hero(
+                tag: 'void_brand',
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: Text(
+                    'void',
+                    style: GoogleFonts.ibmPlexMono(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: -1.0,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                  VoidSurfaceRoute(page: const ProfileScreen()),
+                ),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: const Icon(Icons.person, size: 18, color: Colors.white54),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file="profile_screen.dart" filepath="ui/profile/profile_screen.dart" size="10.5KB">
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../data/stores/void_store.dart';
+import '../../services/security_service.dart';
+import '../../services/haptic_service.dart';
+
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _isLockEnabled = false;
+  int _itemCount = 0;
+  String _storageSize = "0 KB";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    // Load Security Setting
+    final enabled = await SecurityService.isLockEnabled();
+    
+    // Load Stats from Store
+    final items = await VoidStore.all();
+    
+    // Estimate storage (very rough estimation for UI)
+    final size = (items.length * 0.45).toStringAsFixed(1);
+
+    if (!mounted) return;
+    setState(() {
+      _isLockEnabled = enabled;
+      _itemCount = items.length;
+      _storageSize = "$size KB";
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.6),
+                blurRadius: 40,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ─── Header ─────────────────────────────
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 18,
+                      color: Colors.white70,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'profile',
+                    style: GoogleFonts.ibmPlexMono(
+                      fontSize: 18,
+                      letterSpacing: 1.2,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 36),
+
+              // ─── Identity ───────────────────────────
+              Center(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const RadialGradient(
+                          center: Alignment(-0.3, -0.3),
+                          radius: 1.2,
+                          colors: [Color(0xFFF2F2F2), Color(0xFFBDBDBD)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            blurRadius: 32,
+                            spreadRadius: 8,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Local Identity',
+                      style: GoogleFonts.ibmPlexMono(
+                        fontSize: 14,
+                        letterSpacing: 1.1,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'stored only on this device',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 48),
+
+              // ─── Stats ──────────────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _StatBlock(label: 'Items', value: _itemCount.toString()),
+                  _StatBlock(label: 'Storage', value: _storageSize),
+                  const _StatBlock(label: 'Mode', value: 'Local'),
+                ],
+              ),
+
+              const SizedBox(height: 40),
+
+              // ─── Security ───────────────────────────
+              _buildSectionTitle("SECURITY"),
+              _buildToggleTile(
+                title: "Biometric Lock",
+                subtitle: "Require handshake on startup",
+                value: _isLockEnabled,
+                onChanged: (val) async {
+                  HapticService.medium();
+                  await SecurityService.setLockEnabled(val);
+                  setState(() => _isLockEnabled = val);
+                },
+              ),
+
+              const SizedBox(height: 24),
+
+              // ─── Actions ────────────────────────────
+              _buildSectionTitle("DATA"),
+              _ActionTile(
+                title: 'Export vault',
+                subtitle: 'Save your fragments as a file',
+                onTap: () {
+                  HapticService.light();
+                },
+              ),
+              const SizedBox(height: 12),
+              _ActionTile(
+                title: 'Import vault',
+                subtitle: 'Restore from backup',
+                onTap: () {
+                  HapticService.light();
+                },
+              ),
+
+              const Spacer(),
+
+              // ─── Danger Zone ────────────────────────
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    HapticService.heavy();
+                  },
+                  child: Text(
+                    'Reset vault',
+                    style: TextStyle(
+                      color: Colors.red.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8, bottom: 12),
+      child: Text(
+        title,
+        style: GoogleFonts.ibmPlexMono(
+          fontSize: 10,
+          letterSpacing: 2,
+          color: Colors.white24,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggleTile({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required Function(bool) onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                Text(subtitle, style: TextStyle(color: Colors.white24, fontSize: 11)),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: Colors.white,
+            activeTrackColor: Colors.white24,
+            inactiveTrackColor: Colors.black,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/* ───────────────────────────────────────────── */
+
+class _StatBlock extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatBlock({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.ibmPlexMono(
+            fontSize: 16,
+            letterSpacing: 1.2,
+            color: Colors.white70,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.white.withValues(alpha: 0.4),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/* ───────────────────────────────────────────── */
+
+class _ActionTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ActionTile({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white10),
+          ],
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file="orb_loader.dart" filepath="ui/share/orb_loader.dart" size="3.1KB">
+import 'package:flutter/material.dart';
+
+enum OrbState { idle, processing, success }
+
+class OrbLoader extends StatefulWidget {
+  final OrbState state;
+  const OrbLoader({super.key, this.state = OrbState.idle});
+
+  @override
+  State<OrbLoader> createState() => _OrbLoaderState();
+}
+
+class _OrbLoaderState extends State<OrbLoader> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.state == OrbState.processing) {
+      if (_ctrl.duration != const Duration(milliseconds: 400)) {
+        _ctrl.duration = const Duration(milliseconds: 400);
+        _ctrl.repeat(reverse: true);
+      }
+    }
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // 🔥 THE SHOCKWAVE (Sharp, fast ripple)
+        if (widget.state == OrbState.success)
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 1000),
+            curve: Curves.easeOutExpo,
+            builder: (context, val, child) => Container(
+              width: 60 + (val * 300), // Massive expansion
+              height: 60 + (val * 300),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: (1.0 - val) * 0.4),
+                  width: 0.8, // Hairline thin
+                ),
+              ),
+            ),
+          ),
+
+        // THE ORB
+        if (widget.state == OrbState.success)
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 1.0, end: 4.0),
+            duration: const Duration(milliseconds: 1000),
+            curve: Curves.easeOutQuart,
+            builder: (_, val, child) => Opacity(
+              opacity: (1.0 - (val - 1.0) / 3.0).clamp(0.0, 1.0),
+              child: Transform.scale(scale: val, child: child),
+            ),
+            child: _buildOrbBody(isSuccess: true),
+          )
+        else
+          AnimatedBuilder(
+            animation: _ctrl,
+            builder: (context, child) => Transform.scale(
+              scale: 0.94 + (_ctrl.value * 0.08),
+              child: _buildOrbBody(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildOrbBody({bool isSuccess = false}) {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [
+            Colors.white,
+            isSuccess ? Colors.white.withValues(alpha: 0.2) : const Color(0xFF777777)
+          ],
+          stops: const [0.1, 1.0],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withValues(alpha: isSuccess ? 0.1 : 0.2),
+            blurRadius: isSuccess ? 80 : 30,
+            spreadRadius: isSuccess ? 30 : 5,
+          ),
+        ],
+      ),
+    );
+  }
+}
+</file>
+
+<file="share_loader_screen.dart" filepath="ui/share/share_loader_screen.dart" size="4.1KB">
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:void_space/data/models/void_item.dart';
+import 'package:void_space/data/stores/void_store.dart';
+import 'package:void_space/services/link_metadata_service.dart';
+import 'package:void_space/services/share_bridge.dart';
+import 'package:void_space/services/haptic_service.dart';
+import 'orb_loader.dart';
+
+class ShareLoaderScreen extends StatefulWidget {
+  const ShareLoaderScreen({super.key});
+  @override
+  State<ShareLoaderScreen> createState() => _ShareLoaderScreenState();
+}
+
+class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
+  OrbState _orbState = OrbState.idle;
+  bool _showToast = false;
+
+  @override
+  void initState() {
+    super.initState();
+    SchedulerBinding.instance.addPostFrameCallback((_) => _processShare());
+  }
+
+  Future<void> _processShare() async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (mounted) setState(() => _orbState = OrbState.processing);
+
+    final rawText = await ShareBridge.getSharedText();
+    if (rawText == null || rawText.isEmpty) { 
+      _close(); 
+      return; 
+    }
+
+    VoidItem item;
+
+    // 🔥 Reverted to basic URL detection
+    if (rawText.startsWith('http')) {
+      try {
+        item = await LinkMetadataService.fetch(rawText).timeout(const Duration(seconds: 5));
+      } catch (_) {
+        item = VoidItem.fallback(rawText, type: 'link');
+      }
+    } else {
+      item = VoidItem.fallback(rawText, type: 'note');
+    }
+    
+    await VoidStore.add(item);
+    HapticService.success();
+
+    if (mounted) {
+      setState(() {
+        _orbState = OrbState.success;
+        _showToast = true; 
+      });
+    }
+    
+    await Future.delayed(const Duration(milliseconds: 2200));
+    _close();
+  }
+
+  void _close() => ShareBridge.close();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent, 
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.0,
+            colors: [
+              Colors.black.withValues(alpha: 0.92),
+              Colors.black.withValues(alpha: 0.70),
+            ],
+            stops: const [0.2, 0.9],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OrbLoader(state: _orbState),
+              const SizedBox(height: 40), 
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 600),
+                opacity: _showToast ? 1.0 : 0.0,
+                curve: Curves.easeOut,
+                child: _showToast ? _buildToast() : const SizedBox(height: 48),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToast() {
+    return Material(
+      type: MaterialType.transparency,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 1000),
+        curve: Curves.easeOutExpo,
+        builder: (context, val, child) => Transform.translate(
+          offset: Offset(0, 15 * (1 - val)),
+          child: Opacity(opacity: val, child: child),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF111111).withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 30)
+            ]
+          ),
+          child: Text(
+            "FRAGMENT SAVED",
+            style: GoogleFonts.ibmPlexMono(
+              color: Colors.white,
+              fontSize: 10,
+              letterSpacing: 3,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file="splash_screen.dart" filepath="ui/splash/splash_screen.dart" size="4.5KB">
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../services/security_service.dart'; // 🔥 ADD THIS
+import '../home/home_screen.dart';
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  final List<String> _logs = [];
+  final List<String> _rawLogs = [
+    "INITIALIZING_VAULT...",
+    "CHECKING_LOCAL_STORAGE... OK",
+    "ENCRYPTING_SESSION... ACTIVE",
+  ];
+
+  String _brandText = "";
+  final String _targetBrand = "void";
+  bool _showCursor = true;
+  bool _bootComplete = false;
+  bool _needsRetry = false; // 🔥 For failed auth
+  Timer? _cursorTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startCursor();
+    _runTerminalSequence();
+  }
+
+  @override
+  void dispose() {
+    _cursorTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startCursor() {
+    _cursorTimer = Timer.periodic(const Duration(milliseconds: 450), (t) {
+      if (mounted) setState(() => _showCursor = !_showCursor);
+    });
+  }
+
+  Future<void> _runTerminalSequence() async {
+    setState(() { _needsRetry = false; });
+
+    // 1. Logs
+    for (var log in _rawLogs) {
+      await Future.delayed(const Duration(milliseconds: 350));
+      if (mounted) setState(() => _logs.add("> $log"));
+    }
+
+    // 2. Type Brand
+    for (int i = 0; i <= _targetBrand.length; i++) {
+      await Future.delayed(Duration(milliseconds: 1000 ~/ _targetBrand.length));
+      if (mounted) setState(() => _brandText = _targetBrand.substring(0, i));
+    }
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) setState(() => _bootComplete = true);
+
+    // 3. 🔥 SECURITY HANDSHAKE
+    final bool isLocked = await SecurityService.isLockEnabled();
+    if (isLocked) {
+      if (mounted) setState(() => _logs.add("> CHALLENGE: BIOMETRIC_REQUIRED"));
+      
+      final bool authenticated = await SecurityService.authenticate();
+      
+      if (!authenticated) {
+        if (mounted) {
+          setState(() {
+            _logs.add("> ERROR: HANDSHAKE_REJECTED");
+            _needsRetry = true;
+          });
+        }
+        return; // Stop here
+      }
+      if (mounted) setState(() => _logs.add("> HANDSHAKE_SUCCESS"));
+    }
+
+    // 4. Navigate
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 1000),
+          pageBuilder: (_, _, _) => const HomeScreen(),
+          transitionsBuilder: (_, anim, _, child) => FadeTransition(opacity: anim, child: child),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ..._logs.map((log) => Text(
+              log,
+              style: GoogleFonts.ibmPlexMono(color: Colors.white.withValues(alpha: 0.15), fontSize: 10),
+            )),
+
+            const SizedBox(height: 20),
+
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Hero(
+                  tag: 'void_brand',
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: Text(
+                      _brandText,
+                      style: GoogleFonts.ibmPlexMono(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w400),
+                    ),
+                  ),
+                ),
+                if (!_bootComplete)
+                  Opacity(
+                    opacity: _showCursor ? 1.0 : 0.0,
+                    child: Container(width: 12, height: 24, margin: const EdgeInsets.only(left: 8), color: Colors.white70),
+                  ),
+              ],
+            ),
+
+            // 🔥 RETRY BUTTON
+            if (_needsRetry)
+              Padding(
+                padding: const EdgeInsets.only(top: 32),
+                child: TextButton(
+                  onPressed: _runTerminalSequence,
+                  child: Text("RETRY_HANDSHAKE", style: GoogleFonts.ibmPlexMono(color: Colors.white54, fontSize: 12, decoration: TextDecoration.underline)),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file="void_dialog.dart" filepath="ui/widgets/void_dialog.dart" size="4.4KB">
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class VoidDialog {
+  static Future<bool?> show({
+    required BuildContext context,
+    required String title,
+    required String message,
+    required String confirmText,
+    IconData icon = Icons.delete_sweep_rounded,
+  }) {
+    return showGeneralDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "Dismiss",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) => const SizedBox(),
+      transitionBuilder: (context, anim1, anim2, child) {
+        return ScaleTransition(
+          scale: CurvedAnimation(parent: anim1, curve: Curves.easeOutBack),
+          child: FadeTransition(
+            opacity: anim1,
+            child: AlertDialog(
+              backgroundColor: const Color(0xFF0A0A0A),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
+              ),
+              contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: Colors.redAccent, size: 32),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.ibmPlexMono(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5), 
+                      fontSize: 13, 
+                      height: 1.5
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          child: Text(
+                            "CANCEL", 
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.3), 
+                              fontSize: 12, 
+                              fontWeight: FontWeight.bold
+                            )
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          child: Text(
+                            confirmText, 
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+</file>
+
+<!-- Summary -->
+<!-- Files included: 21 -->
+<!-- Total size: 71.6KB -->
+<!-- Generated by: LLM Data Collector -->

@@ -1,3 +1,5 @@
+// ui/home/messy_card.dart
+// Update this existing file
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,11 +13,11 @@ class MessyCard extends StatelessWidget {
   final bool isSelected;
   final bool isSelectionMode;
   final Function(String) onSelect;
-  final FocusNode searchFocusNode; 
+  final FocusNode searchFocusNode;
 
   const MessyCard({
-    super.key, 
-    required this.item, 
+    super.key,
+    required this.item,
     required this.onUpdate,
     this.isSelected = false,
     this.isSelectionMode = false,
@@ -26,7 +28,7 @@ class MessyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rnd = Random(item.id.hashCode);
-    final double bottomStagger = 5.0 + rnd.nextInt(20); 
+    final double bottomStagger = 5.0 + rnd.nextInt(20);
 
     return GestureDetector(
       onLongPress: () {
@@ -42,8 +44,10 @@ class MessyCard extends StatelessWidget {
         } else {
           HapticService.light();
           Navigator.push(
-            context, 
-            MaterialPageRoute(builder: (_) => ItemDetailScreen(item: item, onDelete: onUpdate))
+            context,
+            MaterialPageRoute(
+              builder: (_) => ItemDetailScreen(item: item, onDelete: onUpdate),
+            ),
           );
         }
       },
@@ -54,19 +58,29 @@ class MessyCard extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           constraints: const BoxConstraints(minHeight: 100),
           clipBehavior: Clip.antiAlias,
+          // Inside MessyCard build method, update the AnimatedContainer decoration:
           decoration: BoxDecoration(
             color: const Color(0xFF161616),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.08),
+              color: isSelected
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.08),
               width: isSelected ? 1.5 : 1.0,
             ),
             boxShadow: [
-              BoxShadow(
-                color: isSelected ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.4),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              )
+              if (isSelected)
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                  spreadRadius: 2, // The "Glow" effect
+                )
+              else
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
             ],
           ),
           child: Stack(
@@ -92,23 +106,27 @@ class MessyCard extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.only(bottom: 6),
                               child: Text(
-                                Uri.parse(item.content).host.replaceFirst('www.', '').toLowerCase(),
+                                Uri.parse(
+                                  item.content,
+                                ).host.replaceFirst('www.', '').toLowerCase(),
                                 style: GoogleFonts.ibmPlexMono(
-                                  color: Colors.white24, 
-                                  fontSize: 9, 
+                                  color: Colors.white24,
+                                  fontSize: 9,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
                           Text(
-                            item.title.isEmpty ? "Untitled Fragment" : item.title,
+                            item.title.isEmpty
+                                ? "Untitled Fragment"
+                                : item.title,
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.ibmPlexSans(
-                              color: Colors.white, 
-                              fontSize: 14, 
-                              fontWeight: FontWeight.w600, 
-                              height: 1.2
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              height: 1.2,
                             ),
                           ),
                           if (item.summary.isNotEmpty)
@@ -125,7 +143,21 @@ class MessyCard extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          // 🔥 REMOVED: AI Tags Display
+                          // AI Tags Display - Re-added
+                          if (item.tags.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Text(
+                                item.tags.map((e) => '#$e').join(' '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.ibmPlexMono(
+                                  color: Colors.white10,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -133,11 +165,20 @@ class MessyCard extends StatelessWidget {
                       padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
                       child: Row(
                         children: [
-                          Icon(item.type == 'link' ? Icons.link : Icons.notes_rounded, size: 10, color: Colors.white10),
+                          Icon(
+                            item.type == 'link'
+                                ? Icons.link
+                                : Icons.notes_rounded,
+                            size: 10,
+                            color: Colors.white10,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             "${item.createdAt.day}/${item.createdAt.month}",
-                            style: GoogleFonts.ibmPlexMono(color: Colors.white10, fontSize: 9),
+                            style: GoogleFonts.ibmPlexMono(
+                              color: Colors.white10,
+                              fontSize: 9,
+                            ),
                           ),
                         ],
                       ),
@@ -148,11 +189,19 @@ class MessyCard extends StatelessWidget {
               ),
               if (isSelected)
                 Positioned(
-                  top: 12, right: 12,
+                  top: 12,
+                  right: 12,
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                    child: const Icon(Icons.check, size: 12, color: Colors.black),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      size: 12,
+                      color: Colors.black,
+                    ),
                   ),
                 ),
             ],

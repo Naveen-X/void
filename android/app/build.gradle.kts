@@ -16,6 +16,8 @@ android {
     }
 
     kotlinOptions {
+        // 'jvmTarget: String' is deprecated. Please migrate to the compilerOptions DSL.
+        // Updated syntax for jvmTarget
         jvmTarget = "17"
     }
 
@@ -37,6 +39,10 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+        implementation("androidx.sqlite:sqlite-bundled:2.6.0") 
 }
 
 flutter {

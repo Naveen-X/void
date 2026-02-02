@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class VoidItem {
   final String id;
 
@@ -15,8 +17,8 @@ class VoidItem {
   final String? imageUrl;
 
   final DateTime createdAt;
-  // 🔥 REMOVED: final List<String> tags;
-  // 🔥 REMOVED: final List<double>? embedding;
+  final List<String> tags; // Re-added
+  final List<double>? embedding; // Re-added
 
   VoidItem({
     required this.id,
@@ -26,8 +28,8 @@ class VoidItem {
     required this.summary,
     this.imageUrl,
     required this.createdAt,
-    // 🔥 REMOVED: this.tags = const [],
-    // 🔥 REMOVED: this.embedding,
+    this.tags = const [], // Default to empty list
+    this.embedding,
   });
 
   // ---------------- JSON ----------------
@@ -41,8 +43,16 @@ class VoidItem {
       summary: json['summary'] ?? '',
       imageUrl: json['imageUrl'],
       createdAt: DateTime.parse(json['createdAt']),
-      // 🔥 REMOVED: tags: List<String>.from(json['tags'] ?? []),
-      // 🔥 REMOVED: embedding: (json['embedding'] as List?)?.map((e) => (e as num).toDouble()).toList(),
+      // Deserialize tags from JSON string
+      tags: json['tags'] != null
+          ? List<String>.from(jsonDecode(json['tags']))
+          : [],
+      // Deserialize embedding from JSON string
+      embedding: json['embedding'] != null
+          ? (jsonDecode(json['embedding']) as List)
+              .map((e) => (e as num).toDouble())
+              .toList()
+          : null,
     );
   }
 
@@ -55,8 +65,10 @@ class VoidItem {
       'summary': summary,
       'imageUrl': imageUrl,
       'createdAt': createdAt.toIso8601String(),
-      // 🔥 REMOVED: 'tags': tags,
-      // 🔥 REMOVED: 'embedding': embedding,
+      // Serialize tags to JSON string for storage
+      'tags': jsonEncode(tags),
+      // Serialize embedding to JSON string for storage
+      'embedding': embedding != null ? jsonEncode(embedding) : null,
     };
   }
 
@@ -73,8 +85,8 @@ class VoidItem {
       summary: '',
       imageUrl: null,
       createdAt: DateTime.now(),
-      // 🔥 REMOVED: tags: [],
-      // 🔥 REMOVED: embedding: null,
+      tags: [],
+      embedding: null,
     );
   }
 }

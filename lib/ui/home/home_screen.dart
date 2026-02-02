@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // CONTROLLERS & NODES
   final TextEditingController _searchCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
-  final FocusNode _searchFocusNode = FocusNode(); // Keep this focus node for the search bar itself
+  final FocusNode _searchFocusNode = FocusNode();
   final ValueNotifier<double> _headerBlurNotifier = ValueNotifier(0.0);
 
   @override
@@ -57,14 +57,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _onSearch() {
+  Future<void> _onSearch() async {
     final query = _searchCtrl.text.toLowerCase();
+    final items = await VoidStore.search(query);
+    if (!mounted) return;
     setState(() {
-      _filteredItems = _allItems.where((item) {
-        return item.title.toLowerCase().contains(query) || 
-               item.content.toLowerCase().contains(query) ||
-               item.summary.toLowerCase().contains(query);
-      }).toList();
+      _filteredItems = items;
     });
   }
 
@@ -130,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        resizeToAvoidBottomInset: false, 
+        resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
             _buildMainContent(),
@@ -163,12 +161,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               },
             ),
 
-            if (!_loading) // Always show controls, even if empty, for the FAB
+            if (!_loading)
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 500),
                 curve: Curves.easeOutQuart,
                 bottom: (isKeyboardOpen ? keyboardHeight + 16 : MediaQuery.of(context).padding.bottom + 24),
-                left: 20, right: 20,
+                left: 20,
+                right: 20,
                 child: _buildBottomControls(isKeyboardOpen),
               ),
           ],
@@ -179,9 +178,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _buildMainContent() {
     if (_loading) return const Center(child: CircularProgressIndicator(strokeWidth: 1, color: Colors.white24));
-    
-    if (_allItems.isEmpty) {
-      return const VoidEmptyState();
+
+    if (_allItems.isEmpty && _searchCtrl.text.isEmpty) {
+      return VoidEmptyState();
+    }
+    if (_filteredItems.isEmpty && _searchCtrl.text.isNotEmpty) {
+      return Center(
+        child: Text(
+          "NO MATCHES FOR '${_searchCtrl.text}'",
+          style: GoogleFonts.ibmPlexMono(color: Colors.white24, fontSize: 12, letterSpacing: 1),
+        ),
+      );
     }
 
     return MasonryGridView.count(
@@ -201,39 +208,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           isSelected: _selectedIds.contains(item.id),
           isSelectionMode: _isSelectionMode,
           onSelect: _toggleSelection,
-          searchFocusNode: _searchFocusNode, // Pass the focus node
+          searchFocusNode: _searchFocusNode,
         );
       },
     );
   }
 
   Widget _buildBottomControls(bool isKeyboardOpen) {
-    // If vault is empty, show only the FAB
-    if (_allItems.isEmpty) {
+    if (_allItems.isEmpty && _searchCtrl.text.isEmpty) {
       return Align(
         alignment: Alignment.centerRight,
-        child: _buildRollingActionButton(isKeyboardOpen), // Use the rolling button for consistency
+        child: _buildRollingActionButton(isKeyboardOpen),
       );
     }
 
-    // If vault has items, show the Rolling Bar
     return Row(
       children: [
-        // THE PILL (Search <-> Selection Info)
         Expanded(child: _buildRollingMainPill(isKeyboardOpen)),
-        
-        // THE FAB (Add <-> Delete)
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-          width: isKeyboardOpen ? 0 : 72, 
-          margin: EdgeInsets.only(left: isKeyboardOpen ? 0 : 12),
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 200),
-            opacity: isKeyboardOpen ? 0.0 : 1.0, 
-            child: _buildRollingActionButton(isKeyboardOpen),
-          ),
-        ),
+        if (!isKeyboardOpen) ...[
+          const SizedBox(width: 12),
+          _buildRollingActionButton(isKeyboardOpen),
+        ]
       ],
     );
   }
@@ -242,11 +237,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOutQuart,
-      height: 60,
+      height: 60, // 🔥 Adjusted height for squircle look
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: _isSelectionMode ? Colors.white : const Color(0xFF161616),
-        borderRadius: BorderRadius.circular(20),
+        // 🔥 Adjusted borderRadius for squircle look
+        borderRadius: BorderRadius.circular(30),
         border: Border.all(color: _isSelectionMode ? Colors.white : Colors.white.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
@@ -286,8 +282,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                     if (_searchCtrl.text.isNotEmpty)
                       GestureDetector(
-                        onTap: () => _searchCtrl.clear(),
-                        child: const Icon(Icons.close_rounded, color: Colors.white24, size: 18),
+                        onTap: () {
+                          HapticService.light();
+                          _searchCtrl.clear();
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close_rounded, color: Colors.white70, size: 14),
+                        ),
                       ),
                   ],
                 ),
@@ -307,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Row(
                   children: [
                     Text(
-                      "${_selectedIds.length} SELECTED", 
+                      "${_selectedIds.length} SELECTED",
                       style: GoogleFonts.ibmPlexMono(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1)
                     ),
                     const Spacer(),
@@ -335,11 +342,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       width: 60, height: 60,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: _isSelectionMode ? Colors.redAccent : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        // 🔥 Changed shape to BoxShape.circle for a perfect circle
+        color: _isSelectionMode ? Colors.redAccent : const Color(0xFF161616),
+        shape: BoxShape.circle, // Use BoxShape.circle for perfect circle
+        border: Border.all(
+          color: _isSelectionMode ? Colors.redAccent : Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: _isSelectionMode ? Colors.redAccent.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.15),
+            color: _isSelectionMode ? Colors.redAccent.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.4),
             blurRadius: 24,
             offset: const Offset(0, 8),
           )
@@ -356,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               curve: Curves.easeInOutQuart,
               alignment: _isSelectionMode ? const Alignment(0, -6.0) : Alignment.center,
               child: IconButton(
-                icon: const Icon(Icons.add, color: Colors.black, size: 28),
+                icon: const Icon(Icons.add, color: Colors.white70, size: 28),
                 onPressed: () {
                   _searchFocusNode.unfocus();
                   HapticService.light();

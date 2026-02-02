@@ -1,3 +1,7 @@
+// ui/home/item_detail_screen.dart
+// Update this existing file
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:void_space/data/models/void_item.dart';
@@ -10,7 +14,11 @@ class ItemDetailScreen extends StatelessWidget {
   final VoidItem item;
   final VoidCallback onDelete;
 
-  const ItemDetailScreen({super.key, required this.item, required this.onDelete});
+  const ItemDetailScreen({
+    super.key,
+    required this.item,
+    required this.onDelete,
+  });
 
   Future<void> _confirmDelete(BuildContext context) async {
     HapticService.warning();
@@ -25,7 +33,7 @@ class ItemDetailScreen extends StatelessWidget {
     if (confirm == true) {
       HapticService.heavy();
       await VoidStore.delete(item.id);
-      onDelete(); 
+      onDelete();
       if (context.mounted) Navigator.pop(context);
     }
   }
@@ -42,25 +50,44 @@ class ItemDetailScreen extends StatelessWidget {
             backgroundColor: Colors.black,
             elevation: 0,
             pinned: true,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
-              onPressed: () => Navigator.pop(context),
+            // Inside ItemDetailScreen, update the SliverAppBar leading:
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ClipOval(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ),
+              ),
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.redAccent,
+                ),
                 onPressed: () => _confirmDelete(context),
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: item.imageUrl != null 
-                ? Image.network(
-                    item.imageUrl!, 
-                    fit: BoxFit.cover,
-                    color: Colors.black.withValues(alpha: 0.3),
-                    colorBlendMode: BlendMode.darken,
-                  ) 
-                : null,
+              background: item.imageUrl != null
+                  ? Image.network(
+                      item.imageUrl!,
+                      fit: BoxFit.cover,
+                      color: Colors.black.withValues(alpha: 0.3),
+                      colorBlendMode: BlendMode.darken,
+                    )
+                  : null,
             ),
           ),
 
@@ -70,11 +97,45 @@ class ItemDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🔥 REMOVED: AI TAGS Display
+                  // AI TAGS Display - Re-added
+                  if (item.tags.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: item.tags
+                            .map(
+                              (tag) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  tag.toUpperCase(),
+                                  style: GoogleFonts.ibmPlexMono(
+                                    color: Colors.white70,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
@@ -82,23 +143,25 @@ class ItemDetailScreen extends StatelessWidget {
                         child: Text(
                           item.type.toUpperCase(),
                           style: GoogleFonts.ibmPlexMono(
-                            color: Colors.white70, 
+                            color: Colors.white70,
                             fontSize: 10,
-                            fontWeight: FontWeight.bold
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Text(
                         item.createdAt.toString().substring(0, 16),
-                        style: GoogleFonts.ibmPlexMono(color: Colors.white24, fontSize: 11),
+                        style: GoogleFonts.ibmPlexMono(
+                          color: Colors.white24,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 28),
 
-                  // 🔥 Using original item.title
                   Text(
                     item.title,
                     style: GoogleFonts.ibmPlexSans(
@@ -112,7 +175,6 @@ class ItemDetailScreen extends StatelessWidget {
 
                   const SizedBox(height: 32),
 
-                  // 🔥 Using original item.summary
                   if (item.type == 'link') ...[
                     GestureDetector(
                       onTap: () => launchUrl(Uri.parse(item.content)),
@@ -121,11 +183,17 @@ class ItemDetailScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.blueAccent.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.1)),
+                          border: Border.all(
+                            color: Colors.blueAccent.withValues(alpha: 0.1),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.link, color: Colors.blueAccent, size: 18),
+                            const Icon(
+                              Icons.link,
+                              color: Colors.blueAccent,
+                              size: 18,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(

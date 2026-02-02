@@ -36,9 +36,9 @@ class VoidEmptyState extends StatelessWidget {
                     ),
                   ),
                   child: const Icon(
-                    Icons.auto_awesome_outlined,
+                    Icons.all_inclusive, // 🔥 Changed from auto_awesome to blur_on
                     color: Colors.white70,
-                    size: 28,
+                    size: 32,
                   ),
                 ),
               ),
