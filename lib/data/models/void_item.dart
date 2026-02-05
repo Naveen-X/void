@@ -1,24 +1,35 @@
 import 'dart:convert';
+import 'package:hive/hive.dart';
+part 'void_item.g.dart';
 
-class VoidItem {
+@HiveType(typeId: 0)
+class VoidItem extends HiveObject {
+  @HiveField(0)
   final String id;
 
-  /// note | link | image
+  @HiveField(1)
   final String type;
 
-  /// Main payload
-  /// - note  → text
-  /// - link  → url
-  /// - image → base64 / path
+  @HiveField(2)
   final String content;
 
+  @HiveField(3)
   final String title;
+
+  @HiveField(4)
   final String summary;
+
+  @HiveField(5)
   final String? imageUrl;
 
+  @HiveField(6)
   final DateTime createdAt;
-  final List<String> tags; // Re-added
-  final List<double>? embedding; // Re-added
+
+  @HiveField(7)
+  final List<String> tags;
+
+  @HiveField(8)
+  final List<double>? embedding;
 
   VoidItem({
     required this.id,
@@ -28,11 +39,9 @@ class VoidItem {
     required this.summary,
     this.imageUrl,
     required this.createdAt,
-    this.tags = const [], // Default to empty list
+    this.tags = const [],
     this.embedding,
   });
-
-  // ---------------- JSON ----------------
 
   factory VoidItem.fromJson(Map<String, dynamic> json) {
     return VoidItem(
@@ -43,11 +52,9 @@ class VoidItem {
       summary: json['summary'] ?? '',
       imageUrl: json['imageUrl'],
       createdAt: DateTime.parse(json['createdAt']),
-      // Deserialize tags from JSON string
       tags: json['tags'] != null
           ? List<String>.from(jsonDecode(json['tags']))
           : [],
-      // Deserialize embedding from JSON string
       embedding: json['embedding'] != null
           ? (jsonDecode(json['embedding']) as List)
               .map((e) => (e as num).toDouble())
@@ -65,14 +72,10 @@ class VoidItem {
       'summary': summary,
       'imageUrl': imageUrl,
       'createdAt': createdAt.toIso8601String(),
-      // Serialize tags to JSON string for storage
       'tags': jsonEncode(tags),
-      // Serialize embedding to JSON string for storage
       'embedding': embedding != null ? jsonEncode(embedding) : null,
     };
   }
-
-  // ---------------- FALLBACK ----------------
 
   factory VoidItem.fallback(String text, {String type = 'note'}) {
     final uri = Uri.tryParse(text);
@@ -87,6 +90,31 @@ class VoidItem {
       createdAt: DateTime.now(),
       tags: [],
       embedding: null,
+    );
+  }
+
+  /// Creates a copy of this item with the given fields replaced
+  VoidItem copyWith({
+    String? id,
+    String? type,
+    String? content,
+    String? title,
+    String? summary,
+    String? imageUrl,
+    DateTime? createdAt,
+    List<String>? tags,
+    List<double>? embedding,
+  }) {
+    return VoidItem(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      content: content ?? this.content,
+      title: title ?? this.title,
+      summary: summary ?? this.summary,
+      imageUrl: imageUrl ?? this.imageUrl,
+      createdAt: createdAt ?? this.createdAt,
+      tags: tags ?? this.tags,
+      embedding: embedding ?? this.embedding,
     );
   }
 }

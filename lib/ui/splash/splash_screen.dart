@@ -11,186 +11,223 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-  final List<String> _logs = [];
-  final List<String> _rawLogs = [
-    "CHECKING_LOCAL_STORAGE... OK",
-    "ENCRYPTING_SESSION... ACTIVE",
-    "LOADING_UI_RESOURCES... OK",
-  ];
-
-  String _brandText = "";
-  final String _targetBrand = "void";
-  bool _showCursor = true;
-  bool _bootComplete = false;
+class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+  bool _showBrand = false;
+  bool _showLine = false;
   bool _needsRetry = false;
-  Timer? _cursorTimer;
-
+  double _lineProgress = 0.0;
+  String _statusText = "INITIALIZING";
+  
+  late AnimationController _breatheController;
+  
   @override
   void initState() {
     super.initState();
-    _startCursor();
-    _runTerminalSequence();
+    
+    _breatheController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat(reverse: true);
+    
+    _runSequence();
   }
 
   @override
   void dispose() {
-    _cursorTimer?.cancel();
+    _breatheController.dispose();
     super.dispose();
   }
 
-  // Pixel-perfect blinking cursor logic
-  void _startCursor() {
-    _cursorTimer = Timer.periodic(const Duration(milliseconds: 450), (t) {
-      if (mounted) setState(() => _showCursor = !_showCursor);
-    });
-  }
-
-  Future<void> _runTerminalSequence() async {
+  Future<void> _runSequence() async {
     if (!mounted) return;
     setState(() { 
-      _needsRetry = false; 
-      _logs.clear(); 
-      _brandText = "";
-      _bootComplete = false;
+      _needsRetry = false;
+      _showBrand = false;
+      _showLine = false;
+      _lineProgress = 0.0;
+      _statusText = "INITIALIZING";
     });
 
-    // --- PHASE 0: ASYNC DB INITIALIZATION ---
-    _addLog("INITIALIZING_VAULT...");
     await Future.delayed(const Duration(milliseconds: 400));
+    setState(() => _showBrand = true);
     
+    await Future.delayed(const Duration(milliseconds: 600));
+    setState(() => _showLine = true);
+    
+    // Animate progress line
     try {
-      // This is the heavy lifting. UI thread stays smooth because 
-      // main() already returned the VoidApp widget.
-      await VoidStore.init(); 
-      _addLog("DATABASE_READY: FTS5_DRIVER_LOADED");
+      await VoidStore.init();
+      for (int i = 0; i <= 100; i += 5) {
+        if (!mounted) return;
+        setState(() => _lineProgress = i / 100);
+        await Future.delayed(const Duration(milliseconds: 20));
+      }
+      setState(() => _statusText = "VAULT ONLINE");
     } catch (e) {
-      _addLog("CRITICAL_ERROR: DB_INIT_FAILED");
-      _addLog("$e");
-      setState(() => _needsRetry = true);
+      setState(() {
+        _statusText = "INIT FAILED";
+        _needsRetry = true;
+      });
       return;
     }
 
-    // --- PHASE 1: SEQUENTIAL TERMINAL LOGS ---
-    for (var log in _rawLogs) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      _addLog(log);
-    }
+    await Future.delayed(const Duration(milliseconds: 500));
 
-    // --- PHASE 2: TYPING ANIMATION ---
-    await Future.delayed(const Duration(milliseconds: 200));
-    for (int i = 0; i <= _targetBrand.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 150));
-      if (mounted) setState(() => _brandText = _targetBrand.substring(0, i));
-    }
-
-    if (mounted) setState(() => _bootComplete = true);
-
-    // --- PHASE 3: SECURITY CHALLENGE ---
+    // Security check
     final bool isLocked = await SecurityService.isLockEnabled();
     if (isLocked) {
-      _addLog("CHALLENGE: BIOMETRIC_REQUIRED");
+      setState(() => _statusText = "AUTHENTICATE");
       final bool authenticated = await SecurityService.authenticate();
-      
       if (!authenticated) {
-        _addLog("ERROR: HANDSHAKE_REJECTED");
-        if (mounted) setState(() => _needsRetry = true);
+        if (mounted) {
+          setState(() {
+            _statusText = "AUTH FAILED";
+            _needsRetry = true;
+          });
+        }
         return;
       }
-      _addLog("HANDSHAKE_SUCCESS");
+      setState(() => _statusText = "ACCESS GRANTED");
     }
 
-    // --- PHASE 4: CUSTOM PAGE TRANSITION ---
-    await Future.delayed(const Duration(milliseconds: 600));
+    await Future.delayed(const Duration(milliseconds: 400));
     if (mounted) {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 1000),
-          pageBuilder: (_, __, ___) => const HomeScreen(),
-          transitionsBuilder: (_, anim, __, child) => FadeTransition(
-            opacity: anim, 
-            child: child
-          ),
+          transitionDuration: const Duration(milliseconds: 600),
+          pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+          transitionsBuilder: (context, anim, secondaryAnim, child) {
+            return FadeTransition(
+              opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+              child: child,
+            );
+          },
         ),
       );
     }
-  }
-
-  void _addLog(String msg) {
-    if (mounted) setState(() => _logs.add("> $msg"));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
+      body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Terminal Logs
-            SizedBox(
-              height: 120, // Constrain height to prevent overflow
-              child: ListView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _logs.length,
-                itemBuilder: (context, index) => Text(
-                  _logs[index],
-                  style: GoogleFonts.ibmPlexMono(
-                    color: Colors.white.withOpacity(0.15),
-                    fontSize: 10,
+            // Animated breathing dot
+            AnimatedBuilder(
+              animation: _breatheController,
+              builder: (context, child) {
+                final breathe = Curves.easeInOut.transform(_breatheController.value);
+                return AnimatedOpacity(
+                  duration: const Duration(milliseconds: 500),
+                  opacity: _showBrand ? 1.0 : 0.0,
+                  child: Container(
+                    width: 8 + (4 * breathe),
+                    height: 8 + (4 * breathe),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.6 + (0.4 * breathe)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.2 * breathe),
+                          blurRadius: 20 * breathe,
+                          spreadRadius: 5 * breathe,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Brand text with cursor
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 600),
+              opacity: _showBrand ? 1.0 : 0.0,
+              child: Hero(
+                tag: 'void_brand',
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "void",
+                        style: GoogleFonts.ibmPlexMono(
+                          color: Colors.white,
+                          fontSize: 36,
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: 8,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            // Brand Text + Blinking Cursor
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Hero(
-                  tag: 'void_brand',
-                  child: Material(
-                    type: MaterialType.transparency,
-                    child: Text(
-                      _brandText,
-                      style: GoogleFonts.ibmPlexMono(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w400,
+            
+            const SizedBox(height: 60),
+            
+            // Progress line
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 400),
+              opacity: _showLine ? 1.0 : 0.0,
+              child: Column(
+                children: [
+                  // Progress bar
+                  Container(
+                    width: 200,
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.1),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 100),
+                        width: 200 * _lineProgress,
+                        height: 1,
+                        color: Colors.white.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
-                ),
-                if (!_bootComplete)
-                  Opacity(
-                    opacity: _showCursor ? 1.0 : 0.0,
-                    child: Container(
-                      width: 12,
-                      height: 24,
-                      margin: const EdgeInsets.only(left: 8),
-                      color: Colors.white70,
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Status text
+                  Text(
+                    _statusText,
+                    style: GoogleFonts.ibmPlexMono(
+                      color: Colors.white24,
+                      fontSize: 10,
+                      letterSpacing: 3,
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
-
-            // Retry UI
+            
+            // Retry button
             if (_needsRetry)
               Padding(
-                padding: const EdgeInsets.only(top: 40),
+                padding: const EdgeInsets.only(top: 32),
                 child: GestureDetector(
-                  onTap: _runTerminalSequence,
-                  child: Text(
-                    "RETRY_HANDSHAKE",
-                    style: GoogleFonts.ibmPlexMono(
-                      color: Colors.white54,
-                      fontSize: 12,
-                      decoration: TextDecoration.underline,
+                  onTap: _runSequence,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: Text(
+                      "RETRY",
+                      style: GoogleFonts.ibmPlexMono(
+                        color: Colors.white38,
+                        fontSize: 11,
+                        letterSpacing: 3,
+                      ),
                     ),
                   ),
                 ),

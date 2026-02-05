@@ -9,6 +9,8 @@ import 'empty_state.dart';
 import 'messy_card.dart';
 import 'void_header.dart';
 import 'manual_entry_overlay.dart';
+import '../theme/void_design.dart';
+import 'package:shimmer/shimmer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,6 +27,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final Set<String> _selectedIds = {};
   bool get _isSelectionMode => _selectedIds.isNotEmpty;
 
+  // TAG FILTERING STATE
+  final Set<String> _selectedTags = {};
+  List<String> _availableTags = [];
+
   // CONTROLLERS & NODES
   final TextEditingController _searchCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
@@ -36,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _load();
-    _searchCtrl.addListener(_onSearch);
+    _searchCtrl.addListener(_applyFilters);
     _scrollCtrl.addListener(_onScroll);
   }
 
@@ -57,13 +63,149 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _onSearch() async {
+  void _extractAvailableTags() {
+    final Set<String> tags = {};
+    for (final item in _allItems) {
+      tags.addAll(item.tags);
+    }
+    _availableTags = tags.toList()..sort();
+  }
+
+  Future<void> _applyFilters() async {
     final query = _searchCtrl.text.toLowerCase();
-    final items = await VoidStore.search(query);
-    if (!mounted) return;
+    
     setState(() {
-      _filteredItems = items;
+      _filteredItems = _allItems.where((item) {
+        // Search filter
+        final matchesSearch = query.isEmpty ||
+            item.title.toLowerCase().contains(query) ||
+            item.summary.toLowerCase().contains(query) ||
+            item.content.toLowerCase().contains(query) ||
+            item.tags.any((tag) => tag.toLowerCase().contains(query));
+        
+        // Tag filter
+        final matchesTags = _selectedTags.isEmpty ||
+            item.tags.any((tag) => _selectedTags.contains(tag));
+        
+        return matchesSearch && matchesTags;
+      }).toList();
     });
+  }
+
+  void _toggleTag(String tag) {
+    HapticService.light();
+    setState(() {
+      if (_selectedTags.contains(tag)) {
+        _selectedTags.remove(tag);
+      } else {
+        _selectedTags.add(tag);
+      }
+    });
+    _applyFilters();
+  }
+
+  void _clearTagFilters() {
+    HapticService.light();
+    setState(() => _selectedTags.clear());
+    _applyFilters();
+  }
+
+  Widget _buildSkeletonGrid() {
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    final headerHeight = statusBarHeight + 56 + (_availableTags.isNotEmpty ? 52 : 0);
+    
+    return Shimmer.fromColors(
+      baseColor: Colors.white.withValues(alpha: 0.05),
+      highlightColor: Colors.white.withValues(alpha: 0.1),
+      child: MasonryGridView.count(
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 2,
+        mainAxisSpacing: VoidDesign.spaceMD,
+        crossAxisSpacing: VoidDesign.spaceMD,
+        padding: EdgeInsets.fromLTRB(
+          VoidDesign.pageHorizontal, 
+          headerHeight + VoidDesign.spaceMD, 
+          VoidDesign.pageHorizontal, 
+          220,
+        ),
+        itemCount: 8,
+        itemBuilder: (context, index) {
+          final heights = [280.0, 340.0, 300.0, 380.0, 320.0, 290.0];
+          final height = heights[index % heights.length];
+          return Container(
+            height: height,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(VoidDesign.radiusXL),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Image area
+                Container(
+                  height: height * 0.6,
+                  color: Colors.white.withValues(alpha: 0.05),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        Container(
+                          width: double.infinity,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Tags row
+                        Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              width: 30,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        // Metadata area
+                        Container(
+                          width: 60,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _toggleSelection(String id) {
@@ -85,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _filteredItems = items;
       _loading = false;
     });
+    _extractAvailableTags();
   }
 
   Future<void> _confirmDelete() async {
@@ -107,9 +250,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _load();
+      _refreshAndLoad();
       _searchFocusNode.unfocus();
     }
+  }
+
+  Future<void> _refreshAndLoad() async {
+    await VoidStore.refresh();
+    await _load();
   }
 
   @override
@@ -127,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: VoidDesign.bgPrimary,
         resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
@@ -142,8 +290,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       begin: Alignment.topCenter, end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withValues(alpha: 0.8),
-                        Colors.black,
+                        VoidDesign.bgPrimary.withValues(alpha: 0.8),
+                        VoidDesign.bgPrimary,
                       ],
                     ),
                   ),
@@ -156,7 +304,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               builder: (context, blurValue, _) {
                 return Positioned(
                   top: 0, left: 0, right: 0,
-                  child: VoidHeader(blurOpacity: blurValue),
+                  child: VoidHeader(
+                    blurOpacity: blurValue,
+                    availableTags: _availableTags.toList(),
+                    selectedTags: _selectedTags,
+                    onClearFilters: _clearTagFilters,
+                    onToggleTag: _toggleTag,
+                    getTagColor: _getTagColor,
+                  ),
                 );
               },
             ),
@@ -177,42 +332,158 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildMainContent() {
-    if (_loading) return const Center(child: CircularProgressIndicator(strokeWidth: 1, color: Colors.white24));
+    if (_loading) return _buildSkeletonGrid();
 
     if (_allItems.isEmpty && _searchCtrl.text.isEmpty) {
-      return VoidEmptyState();
+      return const VoidEmptyState();
     }
-    if (_filteredItems.isEmpty && _searchCtrl.text.isNotEmpty) {
+    if (_filteredItems.isEmpty && (_searchCtrl.text.isNotEmpty || _selectedTags.isNotEmpty)) {
       return Center(
-        child: Text(
-          "NO MATCHES FOR '${_searchCtrl.text}'",
-          style: GoogleFonts.ibmPlexMono(color: Colors.white24, fontSize: 12, letterSpacing: 1),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off_rounded, size: 48, color: Colors.white10),
+            const SizedBox(height: 16),
+            Text(
+              _searchCtrl.text.isNotEmpty 
+                ? "NO MATCHES FOR '${_searchCtrl.text}'"
+                : "NO ITEMS WITH SELECTED TAGS",
+              style: GoogleFonts.ibmPlexMono(color: Colors.white24, fontSize: 11, letterSpacing: 1),
+            ),
+            if (_selectedTags.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: _clearTagFilters,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Text(
+                    "CLEAR FILTERS",
+                    style: GoogleFonts.ibmPlexMono(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       );
     }
 
-    return MasonryGridView.count(
-      controller: _scrollCtrl,
-      physics: const BouncingScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 14,
-      crossAxisSpacing: 14,
-      padding: const EdgeInsets.fromLTRB(16, 140, 16, 220),
-      itemCount: _filteredItems.length,
-      itemBuilder: (context, index) {
-        final item = _filteredItems[index];
-        return MessyCard(
-          key: ValueKey(item.id),
-          item: item,
-          onUpdate: _load,
-          isSelected: _selectedIds.contains(item.id),
-          isSelectionMode: _isSelectionMode,
-          onSelect: _toggleSelection,
-          searchFocusNode: _searchFocusNode,
-        );
-      },
+    // Main scrollable content - tags are now in header
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    final headerHeight = statusBarHeight + 56 + (_availableTags.isNotEmpty ? 52 : 0);
+    
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: Colors.white,
+      backgroundColor: VoidDesign.bgCard,
+      strokeWidth: 2,
+      child: CustomScrollView(
+        controller: _scrollCtrl,
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              VoidDesign.pageHorizontal, 
+              headerHeight + VoidDesign.spaceMD, 
+              VoidDesign.pageHorizontal, 
+              VoidDesign.spaceMD,
+            ),
+            sliver: SliverMasonryGrid.count(
+              crossAxisCount: 2,
+              mainAxisSpacing: VoidDesign.spaceMD,
+              crossAxisSpacing: VoidDesign.spaceMD,
+              itemBuilder: (context, index) {
+                final item = _filteredItems[index];
+                return MessyCard(
+                  key: ValueKey(item.id),
+                  item: item,
+                  onUpdate: _load,
+                  isSelected: _selectedIds.contains(item.id),
+                  isSelectionMode: _isSelectionMode,
+                  onSelect: _toggleSelection,
+                  searchFocusNode: _searchFocusNode,
+                  index: index,
+                );
+              },
+              childCount: _filteredItems.length,
+            ),
+          ),
+          
+          // Abyss Footer
+          SliverToBoxAdapter(
+            child: GestureDetector(
+              onTap: () {
+                HapticService.light();
+                _refreshAndLoad();
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 80, 20, 160),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 2,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            spreadRadius: 1,
+                          )
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      "VOID SPACE",
+                      style: GoogleFonts.ibmPlexMono(
+                        fontSize: 11,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        letterSpacing: 6.0,
+                        fontWeight: FontWeight.w600,
+                        shadows: [
+                          Shadow(
+                            color: Colors.cyanAccent.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
+
+
+
+
+
+  Color _getTagColor(String tag) {
+    final hash = tag.hashCode.abs();
+    final colors = [
+      Colors.blueAccent,
+      Colors.tealAccent,
+      Colors.purpleAccent,
+      Colors.orangeAccent,
+      Colors.pinkAccent,
+      Colors.cyanAccent,
+      Colors.greenAccent,
+      Colors.amberAccent,
+    ];
+    return colors[hash % colors.length];
+  }
+
 
   Widget _buildBottomControls(bool isKeyboardOpen) {
     if (_allItems.isEmpty && _searchCtrl.text.isEmpty) {
@@ -237,11 +508,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOutQuart,
-      height: 60, // 🔥 Adjusted height for squircle look
+      height: 60,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: _isSelectionMode ? Colors.white : const Color(0xFF161616),
-        // 🔥 Adjusted borderRadius for squircle look
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: _isSelectionMode ? Colors.white : Colors.white.withValues(alpha: 0.08)),
         boxShadow: [
@@ -342,9 +612,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       width: 60, height: 60,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        // 🔥 Changed shape to BoxShape.circle for a perfect circle
         color: _isSelectionMode ? Colors.redAccent : const Color(0xFF161616),
-        shape: BoxShape.circle, // Use BoxShape.circle for perfect circle
+        shape: BoxShape.circle,
         border: Border.all(
           color: _isSelectionMode ? Colors.redAccent : Colors.white.withValues(alpha: 0.1),
           width: 1,
@@ -367,13 +636,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               duration: const Duration(milliseconds: 500),
               curve: Curves.easeInOutQuart,
               alignment: _isSelectionMode ? const Alignment(0, -6.0) : Alignment.center,
-              child: IconButton(
-                icon: const Icon(Icons.add, color: Colors.white70, size: 28),
-                onPressed: () {
-                  _searchFocusNode.unfocus();
-                  HapticService.light();
-                  _showManualEntry();
-                },
+              child: IgnorePointer(
+                ignoring: _isSelectionMode,
+                child: IconButton(
+                  icon: const Icon(Icons.add, color: Colors.white70, size: 28),
+                  onPressed: () {
+                    _searchFocusNode.unfocus();
+                    HapticService.light();
+                    _showManualEntry();
+                  },
+                ),
               ),
             ),
           ),
@@ -386,9 +658,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               duration: const Duration(milliseconds: 500),
               curve: Curves.easeInOutQuart,
               alignment: _isSelectionMode ? Alignment.center : const Alignment(0, 6.0),
-              child: IconButton(
-                icon: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 26),
-                onPressed: _confirmDelete,
+              child: IgnorePointer(
+                ignoring: !_isSelectionMode,
+                child: IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 26),
+                  onPressed: _confirmDelete,
+                ),
               ),
             ),
           ),

@@ -25,4 +25,13 @@ class VoidStore {
   static Future<List<VoidItem>> search(String query) async {
     return await VoidDatabase.searchItems(query);
   }
+
+  static Future<void> update(VoidItem item) async {
+    await VoidDatabase.updateItem(item);
+  }
+
+  /// Refresh the database to see changes from other isolates/engines (e.g., share activity)
+  static Future<void> refresh() async {
+    await VoidDatabase.refresh();
+  }
 }

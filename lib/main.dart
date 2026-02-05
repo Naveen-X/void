@@ -1,31 +1,25 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:void_space/data/database/void_database.dart';
 import 'package:void_space/ui/share/share_loader_screen.dart';
 import 'app/void_app.dart';
 
 void main() async {
-  // 1. Initialize Flutter bindings
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 2. Setup FFI Factory (Non-blocking)
-  if (Platform.isAndroid || Platform.isIOS) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  }
-
-  // 3. START APP IMMEDIATELY (Do NOT await Store.init here)
+  
+  // Initialize Hive
+  await VoidDatabase.init();
+  
+  // Normal app startup
+  // Note: PROCESS_TEXT and share intents are handled by ShareHandlerActivity
+  // which uses the shareMain entry point with floating orb UI
   runApp(const VoidApp());
 }
 
 @pragma('vm:entry-point')
 void shareMain() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (Platform.isAndroid || Platform.isIOS) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  }
+  // Initialize Hive for share flow before showing UI
+  await VoidDatabase.init();
   runApp(const ShareApp());
 }
 
@@ -36,7 +30,6 @@ class ShareApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      // useInheritedMediaQuery: true, 
       themeMode: ThemeMode.dark,
       darkTheme: ThemeData(
         brightness: Brightness.dark,

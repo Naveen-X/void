@@ -4,5 +4,5 @@ import io.flutter.embedding.android.FlutterFragmentActivity
 
 class MainActivity: FlutterFragmentActivity() {
     // Keep this empty. 
-    // All share logic lives in ShareHandlerActivity.kt
+    // All share and process_text logic lives in ShareHandlerActivity.kt
 }
