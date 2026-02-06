@@ -7,6 +7,7 @@ import 'about_screen.dart';
 import '../../data/stores/void_store.dart';
 import '../../services/security_service.dart';
 import '../../services/haptic_service.dart';
+import '../../services/groq_service.dart';
 import '../theme/void_design.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -66,6 +67,85 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     });
     
     _statsAnimController.forward();
+  }
+
+  void _showApiKeyDialog() {
+    final controller = TextEditingController(text: GroqService.getApiKey() ?? '');
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey.shade900,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Groq API Key (Llama 3)',
+          style: GoogleFonts.ibmPlexMono(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter your API key for AI-powered tagging and summaries.',
+              style: GoogleFonts.ibmPlexSans(color: Colors.white54, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              style: GoogleFonts.ibmPlexMono(color: Colors.white, fontSize: 12),
+              decoration: InputDecoration(
+                hintText: 'gsk_...',
+                hintStyle: GoogleFonts.ibmPlexMono(color: Colors.white24, fontSize: 12),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () {
+                // Could open browser to get API key
+              },
+              child: Text(
+                'Get free API key →',
+                style: GoogleFonts.ibmPlexSans(
+                  color: Colors.cyanAccent,
+                  fontSize: 12,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () async {
+              await GroqService.setApiKey(controller.text);
+              if (mounted) {
+                Navigator.pop(context);
+                HapticService.success();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      controller.text.isEmpty ? 'API key cleared' : 'API key saved',
+                      style: GoogleFonts.ibmPlexMono(fontSize: 12),
+                    ),
+                    backgroundColor: Colors.grey.shade900,
+                  ),
+                );
+              }
+            },
+            child: Text('Save', style: TextStyle(color: Colors.cyanAccent)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -133,6 +213,20 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                         await SecurityService.setLockEnabled(val);
                         setState(() => _isLockEnabled = val);
                       },
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // ─── AI Settings ─────────────────────────
+                  _buildSectionTitle("AI SETTINGS"),
+                  const SizedBox(height: 12),
+                  _GlassCard(
+                    child: _ActionTile(
+                      icon: Icons.auto_awesome,
+                      title: 'Groq API Key',
+                      subtitle: 'Enable AI tagging & summaries',
+                      onTap: () => _showApiKeyDialog(),
                     ),
                   ),
 

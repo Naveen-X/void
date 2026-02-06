@@ -10,6 +10,8 @@ import 'package:void_space/data/models/void_item.dart';
 import 'package:void_space/data/stores/void_store.dart';
 import 'package:void_space/services/haptic_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:void_space/services/ai_service.dart';
+import '../../services/groq_service.dart';
 import '../widgets/void_dialog.dart';
 import '../theme/void_design.dart';
 
@@ -40,6 +42,13 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
   late TextEditingController _contentController;
   late TextEditingController _tagInputController;
   late List<String> _editedTags;
+  
+  // AI generation
+  bool _isGeneratingAI = false;
+  
+  // Similar items
+  List<VoidItem> _similarItems = [];
+  bool _loadingSimilar = true;
 
   @override
   void initState() {
@@ -73,6 +82,24 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
     );
     
     _animController.forward();
+    _loadSimilarItems();
+  }
+
+  Future<void> _loadSimilarItems() async {
+    try {
+      final items = await VoidStore.findSimilar(widget.item, limit: 5);
+      if (mounted) {
+        setState(() {
+          _similarItems = items;
+          _loadingSimilar = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading similar items: $e');
+      if (mounted) {
+        setState(() => _loadingSimilar = false);
+      }
+    }
   }
 
   @override
@@ -106,9 +133,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
     );
     
     await VoidStore.update(updatedItem);
-    _editedItem = updatedItem;
     
     setState(() {
+      _editedItem = updatedItem;
       _isEditMode = false;
     });
     
@@ -152,6 +179,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
         return Colors.orangeAccent;
       case 'video':
         return Colors.purpleAccent;
+      case 'social':
+        return Colors.pinkAccent;
       case 'note':
         return Colors.greenAccent;
       default:
@@ -171,6 +200,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
         return Icons.description_rounded;
       case 'video':
         return Icons.video_file_rounded;
+      case 'social':
+        return Icons.share_rounded;
       case 'note':
         return Icons.notes_rounded;
       default:
@@ -215,6 +246,64 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
     return 'Just now';
   }
 
+  Future<void> _generateAIContext() async {
+    if (_isGeneratingAI) return;
+    
+    // Check if Groq is configured
+    if (!GroqService.isConfigured) {
+      HapticService.warning();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please configure Groq API Key in Profile.'),
+          backgroundColor: Colors.orangeAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isGeneratingAI = true);
+    HapticService.medium();
+
+    try {
+      String contentToAnalyze = _editedItem.content;
+      if (_editedItem.type == 'link' && _editedItem.summary != null && _editedItem.summary!.isNotEmpty) {
+        // Include existing summary (likely from OG tags) to help AI context
+        contentToAnalyze = "$contentToAnalyze\n\nContext from Metadata:\n${_editedItem.summary}";
+      }
+
+      final aiContext = await AIService.analyze(
+        _editedItem.title,
+        contentToAnalyze,
+        url: _editedItem.type == 'link' ? _editedItem.content : null,
+      );
+
+      final updatedItem = _editedItem.copyWith(
+        summary: aiContext.summary,
+        tldr: aiContext.tldr,
+        tags: aiContext.tags,
+      );
+
+      await VoidStore.update(updatedItem);
+      
+      if (mounted) {
+        setState(() {
+          _editedItem = updatedItem;
+          _editedTags = List.from(updatedItem.tags);
+          _isGeneratingAI = false;
+        });
+        HapticService.success();
+        widget.onDelete(); // Refresh home screen
+        _loadSimilarItems(); // Refresh similarity based on new tags
+      }
+    } catch (e) {
+      debugPrint('AI Generation failed: $e');
+      if (mounted) {
+        setState(() => _isGeneratingAI = false);
+        HapticService.warning();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final typeColor = _getColorForType(widget.item.type);
@@ -226,26 +315,23 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
         slivers: [
           // Header with image/icon
           SliverAppBar(
-            expandedHeight: widget.item.imageUrl != null || _isFileType(widget.item.type) ? 300 : 120,
+            expandedHeight: _editedItem.imageUrl != null || _isFileType(_editedItem.type) ? 300 : 120,
             backgroundColor: VoidDesign.bgPrimary,
             elevation: 0,
             pinned: true,
-            stretch: true,
+            stretch: false,
             leading: Padding(
               padding: const EdgeInsets.all(8.0),
               child: ClipOval(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      onPressed: () => Navigator.pop(context),
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white,
+                      size: 16,
                     ),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ),
               ),
@@ -256,18 +342,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: ClipOval(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        child: IconButton(
-                          icon: Icon(
-                            _isEditMode ? Icons.check_rounded : Icons.edit_rounded,
-                            color: _isEditMode ? Colors.greenAccent : Colors.white,
-                            size: 20,
-                          ),
-                          onPressed: _isEditMode ? _saveChanges : _toggleEditMode,
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      child: IconButton(
+                        icon: Icon(
+                          _isEditMode ? Icons.check_rounded : Icons.edit_rounded,
+                          color: _isEditMode ? Colors.greenAccent : Colors.white,
+                          size: 20,
                         ),
+                        onPressed: _isEditMode ? _saveChanges : _toggleEditMode,
                       ),
                     ),
                   ),
@@ -276,25 +359,22 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: ClipOval(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      child: IconButton(
-                        icon: Icon(
-                          _isEditMode ? Icons.close_rounded : Icons.delete_outline_rounded,
-                          color: Colors.redAccent,
-                          size: 20,
-                        ),
-                        onPressed: _isEditMode ? _toggleEditMode : () => _confirmDelete(context),
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    child: IconButton(
+                      icon: Icon(
+                        _isEditMode ? Icons.close_rounded : Icons.delete_outline_rounded,
+                        color: Colors.redAccent,
+                        size: 20,
                       ),
+                      onPressed: _isEditMode ? _toggleEditMode : () => _confirmDelete(context),
                     ),
                   ),
                 ),
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const [StretchMode.zoomBackground],
+              stretchModes: const [],
               background: _buildHeaderBackground(typeColor),
             ),
           ),
@@ -314,7 +394,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Type badge and date
-                      _buildMetadataRow(typeColor),
+                      _buildMetadataRow(_getColorForType(_editedItem.type)),
                       
                       const SizedBox(height: VoidDesign.spaceXL),
 
@@ -343,7 +423,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
                         _buildEditableContent()
                       else if (_editedItem.type == 'link') ...[
                         _buildLinkCard(),
-                        if (!_isEditMode && _editedItem.summary.isNotEmpty) ...[
+                        if (!_isEditMode && ((_editedItem.summary?.isNotEmpty ?? false) || (_editedItem.tldr?.isNotEmpty ?? false))) ...[
                           const SizedBox(height: VoidDesign.spaceXL),
                           _buildSummarySection(),
                         ],
@@ -356,6 +436,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
                         const SizedBox(height: VoidDesign.spaceXL),
                         _buildOpenFileButton(typeColor),
                       ],
+
+
 
                       const SizedBox(height: 120),
                     ],
@@ -383,10 +465,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(_getIconForType(widget.item.type), size: 14, color: typeColor),
+              Icon(_getIconForType(_editedItem.type), size: 14, color: typeColor),
               const SizedBox(width: 6),
               Text(
-                widget.item.type.toUpperCase(),
+                _editedItem.type.toUpperCase(),
                 style: GoogleFonts.ibmPlexMono(
                   color: typeColor,
                   fontSize: 10,
@@ -414,7 +496,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
               Icon(Icons.access_time_rounded, size: 12, color: Colors.white30),
               const SizedBox(width: 6),
               Text(
-                _getTimeAgo(widget.item.createdAt),
+                _getTimeAgo(_editedItem.createdAt),
                 style: GoogleFonts.ibmPlexMono(
                   color: Colors.white38,
                   fontSize: 10,
@@ -427,40 +509,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildTagsSection(Color typeColor) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _editedItem.tags.map((tag) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              typeColor.withValues(alpha: 0.12),
-              typeColor.withValues(alpha: 0.06),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: typeColor.withValues(alpha: 0.2)),
-          boxShadow: [
-            BoxShadow(
-              color: typeColor.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Text(
-          '#$tag',
-          style: GoogleFonts.ibmPlexMono(
-            color: typeColor.withValues(alpha: 0.9),
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      )).toList(),
-    );
-  }
+
 
   Widget _buildInlineTagsWithAdd(Color typeColor) {
     return Wrap(
@@ -805,7 +854,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
             ),
             const SizedBox(width: 10),
             Text(
-              'AI SUMMARY',
+              'SUMMARY',
               style: GoogleFonts.ibmPlexMono(
                 color: Colors.white24,
                 fontSize: 10,
@@ -813,17 +862,98 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
                 letterSpacing: 2,
               ),
             ),
+            const Spacer(),
+            if (GroqService.isConfigured)
+              GestureDetector(
+                onTap: _generateAIContext,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.cyanAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      if (_isGeneratingAI)
+                        const SizedBox(
+                          width: 10,
+                          height: 10,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            color: Colors.cyanAccent,
+                          ),
+                        )
+                      else
+                        const Icon(Icons.auto_awesome_rounded, size: 10, color: Colors.cyanAccent),
+                      const SizedBox(width: 6),
+                      Text(
+                        _isGeneratingAI ? 'THINKING...' : 'REFRESH',
+                        style: GoogleFonts.ibmPlexMono(
+                          color: Colors.cyanAccent,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
         const SizedBox(height: 12),
-        Text(
-          widget.item.summary,
-          style: GoogleFonts.ibmPlexSans(
-            color: Colors.white70,
-            fontSize: 15,
-            height: 1.7,
+        if (_editedItem.tldr?.isNotEmpty ?? false) ...[
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.1),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.format_quote_rounded, color: Colors.cyanAccent, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'TL;DR',
+                      style: GoogleFonts.ibmPlexMono(
+                        color: Colors.cyanAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _editedItem.tldr ?? '',
+                  style: GoogleFonts.ibmPlexSans(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 16,
+                    height: 1.6,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+          const SizedBox(height: 16),
+        ],
+        if (_editedItem.summary?.isNotEmpty ?? false)
+          Text(
+            _editedItem.summary ?? '',
+            style: GoogleFonts.ibmPlexSans(
+              color: Colors.white70,
+              fontSize: 15,
+              height: 1.7,
+            ),
+          ),
       ],
     );
   }
@@ -877,9 +1007,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
   }
 
   Widget? _buildHeaderBackground(Color typeColor) {
-    if (widget.item.imageUrl != null && widget.item.imageUrl!.isNotEmpty) {
-      if (_isLocalPath(widget.item.imageUrl!)) {
-        final file = File(widget.item.imageUrl!);
+    if (_editedItem.imageUrl != null && _editedItem.imageUrl!.isNotEmpty) {
+      if (_isLocalPath(_editedItem.imageUrl!)) {
+        final file = File(_editedItem.imageUrl!);
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -908,7 +1038,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
           fit: StackFit.expand,
           children: [
             CachedNetworkImage(
-              imageUrl: widget.item.imageUrl!,
+              imageUrl: _editedItem.imageUrl!,
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(
                 color: Colors.white.withValues(alpha: 0.05),
@@ -1118,68 +1248,103 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildEditableTags(Color typeColor) {
+  Widget _buildRelatedSection() {
+    if (_loadingSimilar) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent),
+        ),
+      );
+    }
+    if (_similarItems.isEmpty) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+        Row(
           children: [
-            ..._editedTags.map((tag) => GestureDetector(
-                  onTap: () => _removeTag(tag),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: typeColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: typeColor.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '#$tag',
-                          style: GoogleFonts.ibmPlexMono(
-                            color: typeColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(Icons.close, size: 14, color: typeColor.withValues(alpha: 0.7)),
-                      ],
-                    ),
-                  ),
-                )),
-            // Add tag input
-            SizedBox(
-              width: 120,
-              child: TextField(
-                controller: _tagInputController,
-                style: GoogleFonts.ibmPlexMono(
-                  color: Colors.white70,
-                  fontSize: 11,
-                ),
-                decoration: InputDecoration(
-                  hintText: '+ add tag',
-                  hintStyle: GoogleFonts.ibmPlexMono(
-                    color: Colors.white24,
-                    fontSize: 11,
-                  ),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.05),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                onSubmitted: _addTag,
+            const Icon(Icons.auto_awesome_outlined, size: 16, color: Colors.cyanAccent),
+            const SizedBox(width: 8),
+            Text(
+              "SIMILAR ITEMS",
+              style: GoogleFonts.ibmPlexMono(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          height: 160,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _similarItems.length,
+            itemBuilder: (context, index) {
+              final item = _similarItems[index];
+              final itemColor = _getColorForType(item.type);
+              return Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: GestureDetector(
+                  onTap: () {
+                    HapticService.light();
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ItemDetailScreen(
+                          item: item,
+                          onDelete: widget.onDelete,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 140,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            color: itemColor.withValues(alpha: 0.1),
+                            child: Center(
+                              child: Icon(
+                                _getIconForType(item.type),
+                                color: itemColor.withValues(alpha: 0.5),
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Text(
+                            item.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.ibmPlexSans(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );

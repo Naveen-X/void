@@ -1,134 +1,111 @@
-import 'package:mobile_rag_engine/mobile_rag_engine.dart';
+
 import '../data/models/void_item.dart';
 
-/// Service for RAG-based semantic search and embedding generation
+/// Lightweight service for keyword-based similarity and search.
+/// Replaces the heavy ONNX-based RAG engine.
 class RagService {
-  static bool _initialized = false;
+  // We keep the name RagService and these flags to maintain compatibility with existing code
+  static bool _initialized = true; 
   static bool get isInitialized => _initialized;
 
-  /// Initialize the RAG engine with the model
-  static Future<void> init({Function(double)? onProgress}) async {
-    if (_initialized) return;
-
-    try {
-      await MobileRag.initialize(
-        tokenizerAsset: 'assets/models/tokenizer.json',
-        modelAsset: 'assets/models/model.onnx',
-        threadLevel: ThreadUseLevel.medium,
-        databaseName: 'void_rag.sqlite',
-        maxChunkChars: 500,
-        overlapChars: 50,
-        onProgress: onProgress,
-      );
-      _initialized = true;
-    } catch (e) {
-      _initialized = false;
-      rethrow;
-    }
+  /// No-op initialization (always ready now)
+  static Future<void> init({Function(String)? onProgress}) async {
+    _initialized = true;
   }
 
-  /// Generate embedding for text
-  static Future<List<double>> generateEmbedding(String text) async {
-    if (!_initialized) {
-      throw StateError('RagService not initialized. Call init() first.');
-    }
-    
-    // Use the embedding service to generate embeddings
-    final embedding = await MobileRag.instance.getEmbedding(text);
-    return embedding;
-  }
+  /// Finds items conceptually similar to the given item using weighted keyword matching.
+  static Future<List<String>> findSimilar(VoidItem item, List<VoidItem> allItems, {int limit = 5}) async {
+    final scores = <String, double>{};
 
-  /// Add an item to the vector index
-  static Future<void> addItem(VoidItem item) async {
-    if (!_initialized) return;
-    
-    // Combine relevant text for the document
-    final text = _buildSearchableText(item);
-    if (text.isEmpty) return;
+    for (final other in allItems) {
+      if (other.id == item.id) continue;
 
-    await MobileRag.instance.addDocument(
-      text,
-      sourceId: item.id,
-    );
-  }
+      double score = 0;
 
-  /// Add multiple items (batch)
-  static Future<void> addItems(List<VoidItem> items, {Function(int, int)? onProgress}) async {
-    if (!_initialized) return;
-    
-    for (int i = 0; i < items.length; i++) {
-      await addItem(items[i]);
-      onProgress?.call(i + 1, items.length);
-    }
-  }
+      // 1. Tag overlap (High Weight)
+      final commonTags = item.tags.toSet().intersection(other.tags.toSet());
+      score += commonTags.length * 5.0;
 
-  /// Remove an item from the vector index
-  static Future<void> removeItem(String id) async {
-    if (!_initialized) return;
-    await MobileRag.instance.deleteSource(id);
-  }
+      // 2. Type match (Medium Weight)
+      if (item.type == other.type) {
+        score += 2.0;
+      }
 
-  /// Rebuild the HNSW index after adding/removing items
-  static Future<void> rebuildIndex() async {
-    if (!_initialized) return;
-    await MobileRag.instance.rebuildIndex();
-  }
+      // 3. Title word overlap (Medium Weight)
+      final titleWords = item.title.toLowerCase().split(RegExp(r'\W+')).where((w) => w.length > 2).toSet();
+      final otherTitleWords = other.title.toLowerCase().split(RegExp(r'\W+')).where((w) => w.length > 2).toSet();
+      final commonTitleWords = titleWords.intersection(otherTitleWords);
+      score += commonTitleWords.length * 3.0;
 
-  /// Semantic search across all items
-  static Future<List<String>> search(String query, {int limit = 10}) async {
-    if (!_initialized) {
-      return [];
-    }
-    
-    final result = await MobileRag.instance.search(
-      query,
-      tokenBudget: 2000,
-      topK: limit,
-    );
+      // 4. Summary/Content overlap (Low Weight)
+      final otherCombined = "${other.summary ?? ''} ${other.content}".toLowerCase();
+      
+      // Simple word check for significant overlaps
+      for (final word in titleWords) {
+        if (otherCombined.contains(word)) score += 0.5;
+      }
 
-    // Extract source IDs from results
-    final sourceIds = <String>[];
-    for (final chunk in result.chunks) {
-      if (chunk.sourceId != null && !sourceIds.contains(chunk.sourceId)) {
-        sourceIds.add(chunk.sourceId!);
+      if (score > 0) {
+        scores[other.id] = score;
       }
     }
-    return sourceIds;
+
+    // Sort by score and take limit
+    final sortedIds = scores.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return sortedIds.take(limit).map((e) => e.key).toList();
   }
 
-  /// Find similar items to a given item
-  static Future<List<String>> findSimilar(VoidItem item, {int limit = 5}) async {
-    final text = _buildSearchableText(item);
-    if (text.isEmpty) return [];
+  /// Semantic search fallback (now just re-uses optimized keyword search logic)
+  static Future<List<String>> search(String query, List<VoidItem> allItems, {int limit = 10}) async {
+    final lowerQuery = query.toLowerCase();
+    final queryWords = lowerQuery.split(RegExp(r'\W+')).where((w) => w.length > 2).toList();
     
-    final results = await search(text, limit: limit + 1);
-    // Remove the item itself from results
-    return results.where((id) => id != item.id).take(limit).toList();
+    final scores = <String, double>{};
+
+    for (final item in allItems) {
+      double score = 0;
+
+      // Exact title match (Highest)
+      if (item.title.toLowerCase() == lowerQuery) {
+        score += 50.0;
+      } else if (item.title.toLowerCase().contains(lowerQuery)) {
+        score += 10.0;
+      }
+
+      // Tag match
+      for (final tag in item.tags) {
+        if (tag.toLowerCase() == lowerQuery) {
+          score += 20.0;
+        } else if (tag.toLowerCase().contains(lowerQuery)) {
+          score += 5.0;
+        }
+      }
+
+      // Word matches
+      for (final word in queryWords) {
+        if (item.title.toLowerCase().contains(word)) score += 5.0;
+        if (item.summary?.toLowerCase().contains(word) ?? false) score += 2.0;
+        if (item.content.toLowerCase().contains(word)) score += 1.0;
+      }
+
+      if (score > 0) {
+        scores[item.id] = score;
+      }
+    }
+
+    final sortedIds = scores.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return sortedIds.take(limit).map((e) => e.key).toList();
   }
 
-  /// Build searchable text from an item
-  static String _buildSearchableText(VoidItem item) {
-    final parts = <String>[];
-    
-    if (item.title.isNotEmpty) {
-      parts.add(item.title);
-    }
-    if (item.summary.isNotEmpty) {
-      parts.add(item.summary);
-    }
-    if (item.content.isNotEmpty && item.type == 'note') {
-      parts.add(item.content);
-    }
-    if (item.tags.isNotEmpty) {
-      parts.add(item.tags.join(' '));
-    }
-    
-    return parts.join('\n');
-  }
-
-  /// Clear all data from the RAG index
-  static Future<void> clear() async {
-    if (!_initialized) return;
-    await MobileRag.instance.clearAll();
-  }
+  // Compatibility methods - now no-ops
+  static Future<void> addItem(VoidItem item) async {}
+  static Future<void> addItems(List<VoidItem> items, {Function(int, int)? onProgress}) async {}
+  static Future<void> removeItem(String id) async {}
+  static Future<void> rebuildIndex() async {}
+  static Future<void> clear() async {}
+  static Future<void> loadSourceMappings() async {}
 }

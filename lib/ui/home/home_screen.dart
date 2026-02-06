@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:void_space/data/models/void_item.dart';
 import 'package:void_space/data/stores/void_store.dart';
 import 'package:void_space/services/haptic_service.dart';
+import 'package:void_space/services/rag_service.dart';
 import '../widgets/void_dialog.dart';
 import 'empty_state.dart';
 import 'messy_card.dart';
@@ -72,24 +73,60 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _applyFilters() async {
-    final query = _searchCtrl.text.toLowerCase();
+    final query = _searchCtrl.text.trim();
     
-    setState(() {
-      _filteredItems = _allItems.where((item) {
-        // Search filter
-        final matchesSearch = query.isEmpty ||
-            item.title.toLowerCase().contains(query) ||
-            item.summary.toLowerCase().contains(query) ||
-            item.content.toLowerCase().contains(query) ||
-            item.tags.any((tag) => tag.toLowerCase().contains(query));
+    // 1. Always get text search results (fast & reliable)
+    final textResults = _textSearch(query);
+    
+    // 2. Try to get semantic results if ready
+    if (query.length >= 3 && RagService.isInitialized) {
+      final semanticItems = await VoidStore.semanticSearch(query);
+      
+      setState(() {
+        // Use a Set to merge unique items, preserving semantic order where possible
+        final mergedSet = <String>{};
+        final mergedList = <VoidItem>[];
         
-        // Tag filter
-        final matchesTags = _selectedTags.isEmpty ||
-            item.tags.any((tag) => _selectedTags.contains(tag));
+        // Add semantic results first (usually more relevant)
+        for (var item in semanticItems) {
+          if (mergedSet.add(item.id)) {
+            // Apply tag filter if active
+            final matchesTags = _selectedTags.isEmpty ||
+                item.tags.any((tag) => _selectedTags.contains(tag));
+            if (matchesTags) mergedList.add(item);
+          }
+        }
         
-        return matchesSearch && matchesTags;
-      }).toList();
-    });
+        // Add text results that weren't captured by semantic search
+        for (var item in textResults) {
+          if (mergedSet.add(item.id)) {
+            mergedList.add(item);
+          }
+        }
+        
+        _filteredItems = mergedList;
+      });
+    } else {
+      setState(() {
+        _filteredItems = textResults;
+      });
+    }
+  }
+
+  List<VoidItem> _textSearch(String query) {
+    final lowerQuery = query.toLowerCase();
+    return _allItems.where((item) {
+      final matchesSearch = query.isEmpty ||
+          item.title.toLowerCase().contains(lowerQuery) ||
+          (item.summary?.toLowerCase().contains(lowerQuery) ?? false) ||
+          item.content.toLowerCase().contains(lowerQuery) ||
+          item.tags.any((tag) => tag.toLowerCase().contains(lowerQuery));
+      
+      final matchesTags = _selectedTags.isEmpty ||
+          item.tags.any((tag) => _selectedTags.contains(tag));
+      
+      return matchesSearch && matchesTags;
+    }).toList();
   }
 
   void _toggleTag(String tag) {

@@ -49,14 +49,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.1"
-  build_cli_annotations:
-    dependency: transitive
-    description:
-      name: build_cli_annotations
-      sha256: e563c2e01de8974566a1998410d3f6f03521788160a02503b0b1f1a46c7b3d95
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.1"
   build_config:
     dependency: transitive
     description:
@@ -270,14 +262,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.33"
-  flutter_rust_bridge:
-    dependency: transitive
-    description:
-      name: flutter_rust_bridge
-      sha256: "37ef40bc6f863652e865f0b2563ea07f0d3c58d8efad803cc01933a4b2ee067e"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.11.1"
   flutter_staggered_grid_view:
     dependency: "direct main"
     description:
@@ -296,14 +280,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  freezed_annotation:
-    dependency: transitive
-    description:
-      name: freezed_annotation
-      sha256: "7294967ff0a6d98638e7acb774aac3af2550777accd8149c90af5b014e6d44d8"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.1.0"
   frontend_server_client:
     dependency: transitive
     description:
@@ -536,14 +512,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
-  mobile_rag_engine:
-    dependency: "direct main"
-    description:
-      name: mobile_rag_engine
-      sha256: e2bb85a1dd9c2e2452d1c2ab8e15604b36c0702e68056b7a355e56832bfb2bad
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.9.0"
   octo_image:
     dependency: transitive
     description:
@@ -552,14 +520,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
-  onnxruntime:
-    dependency: transitive
-    description:
-      name: onnxruntime
-      sha256: e77ec05acafc135cc5fe7bcdf11b101b39f06513c9d5e9fa02cb1929f6bac72a
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.4.1"
   open_filex:
     dependency: "direct main"
     description:
@@ -672,14 +632,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.0"
-  rag_engine_flutter:
-    dependency: transitive
-    description:
-      name: rag_engine_flutter
-      sha256: d89187834d25789a11b3b93f34152e103ab05fe7497f4468826a0383a034a722
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.9.0"
   rxdart:
     dependency: transitive
     description:

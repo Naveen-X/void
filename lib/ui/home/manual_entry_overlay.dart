@@ -7,6 +7,7 @@ import '../../data/stores/void_store.dart';
 import '../../services/link_metadata_service.dart';
 import '../../services/haptic_service.dart';
 import '../../services/ai_service.dart';
+import 'package:void_space/services/groq_service.dart';
 
 class ManualEntryOverlay extends StatefulWidget {
   final VoidCallback onSave;
@@ -66,38 +67,59 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
     setState(() => _isProcessing = true);
     HapticService.medium();
 
-    VoidItem item;
-    if (text.startsWith('http')) {
-      try {
-        item = await LinkMetadataService.fetch(text).timeout(const Duration(seconds: 5));
-      } catch (_) {
-        item = VoidItem.fallback(text, type: 'link');
+    try {
+      await GroqService.init(); // Ensure AI service is ready
+      VoidItem item;
+      if (text.startsWith('http')) {
+        try {
+          item = await LinkMetadataService.fetch(text).timeout(const Duration(seconds: 20));
+        } catch (_) {
+          item = VoidItem.fallback(text, type: 'link');
+        }
+      } else {
+        try {
+          final aiContext = await AIService.analyze(
+            text.split('\n').first,
+            text,
+          ).timeout(const Duration(seconds: 20));
+          
+          item = VoidItem(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            type: 'note',
+            content: text,
+            title: aiContext.title,
+            summary: aiContext.summary,
+            tldr: aiContext.tldr,
+            imageUrl: null,
+            createdAt: DateTime.now(),
+            tags: aiContext.tags,
+            embedding: aiContext.embedding,
+          );
+        } catch (_) {
+          item = VoidItem.fallback(text, type: 'note');
+        }
       }
-    } else {
-      final aiContext = await AIService.analyze(
-        text.split('\n').first,
-        text,
-      );
-      item = VoidItem(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        type: 'note',
-        content: text,
-        title: aiContext.title,
-        summary: aiContext.tldr,
-        imageUrl: null,
-        createdAt: DateTime.now(),
-        tags: aiContext.tags,
-        embedding: aiContext.embedding,
-      );
-    }
 
-    await VoidStore.add(item);
-    HapticService.success();
-    widget.onSave();
-    if (mounted) Navigator.pop(context);
+      await VoidStore.add(item);
+      HapticService.success();
+      widget.onSave();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      debugPrint('Save failed: $e');
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save fragment. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
   }
 
   bool get _isLink => _controller.text.startsWith('http');
+  bool get _isVideo => _isLink && (_controller.text.contains('youtube.com') || _controller.text.contains('youtu.be'));
+  bool get _isSocial => _isLink && (_controller.text.contains('instagram.com') || _controller.text.contains('twitter.com') || _controller.text.contains('x.com') || _controller.text.contains('threads.net'));
   bool get _hasContent => _controller.text.trim().isNotEmpty;
 
   @override
@@ -160,7 +182,7 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                               shape: BoxShape.circle,
                               color: _isProcessing 
                                 ? Colors.orangeAccent.withValues(alpha: _pulseAnimation.value)
-                                : (_isLink ? Colors.blueAccent : Colors.greenAccent).withValues(alpha: 0.6),
+                                : (_isVideo ? Colors.purpleAccent : (_isSocial ? Colors.pinkAccent : (_isLink ? Colors.blueAccent : Colors.greenAccent))).withValues(alpha: 0.6),
                               boxShadow: _isProcessing ? [
                                 BoxShadow(
                                   color: Colors.orangeAccent.withValues(alpha: _pulseAnimation.value * 0.5),
@@ -176,7 +198,7 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                       Text(
                         _isProcessing 
                           ? "PROCESSING..." 
-                          : (_isLink ? "LINK DETECTED" : "NEW FRAGMENT"),
+                          : (_isVideo ? "VIDEO DETECTED" : (_isSocial ? "SOCIAL DETECTED" : (_isLink ? "LINK DETECTED" : "NEW FRAGMENT"))),
                         style: GoogleFonts.ibmPlexMono(
                           color: _isProcessing 
                             ? Colors.orangeAccent 

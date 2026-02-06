@@ -49,7 +49,7 @@ class VoidDatabase {
     final queryLower = query.toLowerCase();
     final results = box.values.where((item) {
       return item.title.toLowerCase().contains(queryLower) ||
-             item.summary.toLowerCase().contains(queryLower) ||
+             (item.summary?.toLowerCase().contains(queryLower) ?? false) ||
              item.content.toLowerCase().contains(queryLower) ||
              item.tags.any((tag) => tag.toLowerCase().contains(queryLower));
     }).toList();

@@ -37,11 +37,10 @@ class VoidHeader extends StatelessWidget {
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(
-          sigmaX: 25 * effectiveBlur,
-          sigmaY: 25 * effectiveBlur,
+          sigmaX: 15 * effectiveBlur,
+          sigmaY: 15 * effectiveBlur,
         ),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+        child: Container(
           height: totalHeight,
           decoration: BoxDecoration(
             color: VoidDesign.bgPrimary.withValues(alpha: 0.4 + (0.3 * blurOpacity)),

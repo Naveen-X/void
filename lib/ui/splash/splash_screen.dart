@@ -3,7 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/security_service.dart';
-import '../../services/rag_service.dart';
+
+import '../../services/groq_service.dart';
 import '../../data/stores/void_store.dart';
 import '../home/home_screen.dart';
 
@@ -72,32 +73,21 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     
     // Initialize and animate progress
     try {
-      // Initialize database
+      // Initialize database and AI service
       await VoidStore.init();
-      for (int i = 0; i <= 50; i += 5) {
+      await GroqService.init();
+      
+      for (int i = 0; i <= 90; i += 10) {
         if (!mounted) return;
         setState(() => _lineProgress = i / 100);
-        await Future.delayed(const Duration(milliseconds: 10));
+        await Future.delayed(const Duration(milliseconds: 20));
       }
+      
       setState(() => _statusText = "VAULT ONLINE");
       
-      // Initialize RAG engine (optional - may fail on first run)
-      try {
-        setState(() => _statusText = "LOADING AI");
-        await RagService.init(onProgress: (progress) {
-          if (mounted) {
-            setState(() => _lineProgress = 0.5 + (progress * 0.4));
-          }
-        });
-        setState(() => _statusText = "AI READY");
-        
-        // Rebuild index if needed
-        await VoidStore.rebuildRagIndex();
-      } catch (e) {
-        // RAG init failed - continue without it
-        debugPrint('RAG init failed: $e');
-      }
-      
+      // Give it a tiny bit of time for progress bar aesthetic, then move on
+      await Future.delayed(const Duration(milliseconds: 500));
+
       for (int i = 90; i <= 100; i += 2) {
         if (!mounted) return;
         setState(() => _lineProgress = i / 100);

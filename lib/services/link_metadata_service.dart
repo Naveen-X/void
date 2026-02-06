@@ -14,8 +14,26 @@ class LinkMetadataService {
       return VoidItem.fallback(url);
     }
 
-    final res = await http.get(uri);
-    final body = utf8.decode(res.bodyBytes);
+    try {
+      final res = await http.get(
+        uri,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (res.statusCode != 200) {
+        throw Exception('Failed to load page: ${res.statusCode}');
+      }
+
+      String body;
+      try {
+        body = utf8.decode(res.bodyBytes);
+      } catch (e) {
+        // Fallback to latin1 if utf8 fails
+        body = latin1.decode(res.bodyBytes);
+      }
 
     final doc = html.parse(body);
 
@@ -37,19 +55,53 @@ class LinkMetadataService {
 
     final imageUrl = pickMeta('og:image');
 
+    // Determine specific type based on domain
+    String finalType = 'link';
+    final host = uri.host.toLowerCase();
+    
+    if (host.contains('youtube.com') || host.contains('youtu.be') || host.contains('vimeo.com')) {
+      finalType = 'video';
+    } else if (host.contains('instagram.com') || 
+               host.contains('twitter.com') || 
+               host.contains('x.com') || 
+               host.contains('threads.net')) {
+      finalType = 'social';
+    }
+
     // Use AI service to analyze and get tags/embedding
-    final aiContext = await AIService.analyze(title.trim(), summary.trim());
+    final aiContext = await AIService.analyze(title.trim(), summary.trim(), url: url);
 
     return VoidItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      type: 'link',
+      type: finalType,
       content: url,
-      title: aiContext.title, // Use AI-analyzed title if preferred, or original
-      summary: aiContext.tldr, // Use AI-analyzed summary if preferred, or original
+      title: aiContext.title,
+      summary: aiContext.summary, // The 3-5 sentence one
+      tldr: aiContext.tldr,       // The crisp single sentence
       imageUrl: imageUrl,
       createdAt: DateTime.now(),
-      tags: aiContext.tags, // Add generated tags
-      embedding: aiContext.embedding, // Add generated embedding
+      tags: aiContext.tags,
+      embedding: aiContext.embedding,
     );
+  } catch (e) {
+      // Even if scraping fails, try to get AI context from the URL itself
+      try {
+        final aiContext = await AIService.analyze('', url, url: url);
+        return VoidItem(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          type: 'link',
+          content: url,
+          title: aiContext.title.isNotEmpty ? aiContext.title : (Uri.tryParse(url)?.host ?? 'Saved Link'),
+          summary: aiContext.summary,
+          tldr: aiContext.tldr,
+          imageUrl: null,
+          createdAt: DateTime.now(),
+          tags: aiContext.tags,
+          embedding: aiContext.embedding,
+        );
+      } catch (_) {
+        return VoidItem.fallback(url);
+      }
+    }
   }
 }

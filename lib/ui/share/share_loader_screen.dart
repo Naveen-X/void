@@ -10,6 +10,7 @@ import 'package:void_space/services/link_metadata_service.dart';
 import 'package:void_space/services/share_bridge.dart';
 import 'package:void_space/services/haptic_service.dart';
 import 'package:void_space/services/ai_service.dart';
+import 'package:void_space/services/groq_service.dart';
 import 'orb_loader.dart';
 
 class ShareLoaderScreen extends StatefulWidget {
@@ -33,8 +34,23 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
     try {
       developer.log('ShareLoaderScreen: Starting init and process', name: 'ShareLoader');
       
-      // Initialize Hive if needed (not initialized in main for share flow)
+      // Initialize Hive
       await VoidStore.init();
+      
+      // CRITICAL: Ensure AI Service is ready
+      // The Share intent runs in a separate FlutterActivty/Isolate context on Android sometimes,
+      // so static variables from the main app might not be present. We MUST reload the key.
+      if (!GroqService.isConfigured) {
+         developer.log('ShareLoaderScreen: GroqService not configured. Initializing...', name: 'ShareLoader');
+         await GroqService.init();
+      }
+      
+      // Verification
+      if (GroqService.isConfigured) {
+        developer.log('ShareLoaderScreen: GroqService READY. Key present.', name: 'ShareLoader');
+      } else {
+        developer.log('ShareLoaderScreen: WARNING: GroqService failed to load key. AI will be disabled.', name: 'ShareLoader');
+      }
       
       await _processShare();
     } catch (e) {
@@ -83,34 +99,40 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
       developer.log('ShareLoaderScreen: Processing text share', name: 'ShareLoader');
       
       VoidItem item;
-      AIContext aiContext;
 
       if (rawText.startsWith('http')) {
         try {
-          item = await LinkMetadataService.fetch(rawText).timeout(const Duration(seconds: 5));
+          // DIRECT MATCH OF MANUAL ENTRY LOGIC:
+          // We trust LinkMetadataService to do the heavy lifting (Scraping + AI).
+          // It has its own internal AI calls and fallbacks.
+          item = await LinkMetadataService.fetch(rawText).timeout(const Duration(seconds: 20));
         } catch (_) {
+          // If the service itself crashes (timeout or network), we fallback to a basic link item
           item = VoidItem.fallback(rawText, type: 'link');
-          aiContext = await AIService.analyze(item.title, item.summary);
-          item = VoidItem(
-            id: item.id, type: item.type, content: item.content,
-            title: aiContext.title, summary: aiContext.tldr,
-            imageUrl: item.imageUrl, createdAt: item.createdAt,
-            tags: aiContext.tags, embedding: aiContext.embedding,
-          );
         }
       } else {
-        aiContext = await AIService.analyze(rawText.split('\n').first, rawText);
-        item = VoidItem(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          type: 'note',
-          content: rawText,
-          title: aiContext.title,
-          summary: aiContext.tldr,
-          imageUrl: null,
-          createdAt: DateTime.now(),
-          tags: aiContext.tags,
-          embedding: aiContext.embedding,
-        );
+        // Text Note Logic (Direct Match to ManualEntryOverlay)
+        try {
+          final aiContext = await AIService.analyze(
+            rawText.split('\n').first,
+            rawText,
+          ).timeout(const Duration(seconds: 20));
+          
+          item = VoidItem(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            type: 'note',
+            content: rawText,
+            title: aiContext.title,
+            summary: aiContext.summary,
+            tldr: aiContext.tldr,
+            imageUrl: null,
+            createdAt: DateTime.now(),
+            tags: aiContext.tags,
+            embedding: aiContext.embedding,
+          );
+        } catch (_) {
+          item = VoidItem.fallback(rawText, type: 'note');
+        }
       }
 
       developer.log('ShareLoaderScreen: Saving text item to store', name: 'ShareLoader');

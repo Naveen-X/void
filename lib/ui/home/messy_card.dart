@@ -91,6 +91,8 @@ class _MessyCardState extends State<MessyCard> with SingleTickerProviderStateMix
         return Icons.insert_drive_file_rounded;
       case 'video':
         return Icons.video_file_rounded;
+      case 'social':
+        return Icons.share_rounded;
       default:
         return Icons.notes_rounded;
     }
@@ -108,6 +110,8 @@ class _MessyCardState extends State<MessyCard> with SingleTickerProviderStateMix
         return Colors.orangeAccent;
       case 'video':
         return Colors.purpleAccent;
+      case 'social':
+        return Colors.pinkAccent;
       default:
         return Colors.white54;
     }
@@ -175,6 +179,10 @@ class _MessyCardState extends State<MessyCard> with SingleTickerProviderStateMix
       case 'video':
         icon = Icons.video_file_rounded;
         color = Colors.purpleAccent;
+        break;
+      case 'social':
+        icon = Icons.share_rounded;
+        color = Colors.pinkAccent;
         break;
       default:
         icon = Icons.insert_drive_file_rounded;
@@ -411,6 +419,8 @@ class _MessyCardState extends State<MessyCard> with SingleTickerProviderStateMix
                               ),
                             ),
                             
+
+
                             // Tags
                             if (widget.item.tags.isNotEmpty)
                               Padding(

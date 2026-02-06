@@ -17,10 +17,13 @@ class VoidItem extends HiveObject {
   final String title;
 
   @HiveField(4)
-  final String summary;
+  final String? summary;
 
   @HiveField(5)
   final String? imageUrl;
+
+  @HiveField(9)
+  final String? tldr;
 
   @HiveField(6)
   final DateTime createdAt;
@@ -36,8 +39,9 @@ class VoidItem extends HiveObject {
     required this.type,
     required this.content,
     required this.title,
-    required this.summary,
+    this.summary,
     this.imageUrl,
+    this.tldr,
     required this.createdAt,
     this.tags = const [],
     this.embedding,
@@ -49,8 +53,9 @@ class VoidItem extends HiveObject {
       type: json['type'],
       content: json['content'],
       title: json['title'] ?? '',
-      summary: json['summary'] ?? '',
+      summary: json['summary'],
       imageUrl: json['imageUrl'],
+      tldr: json['tldr'],
       createdAt: DateTime.parse(json['createdAt']),
       tags: json['tags'] != null
           ? List<String>.from(jsonDecode(json['tags']))
@@ -71,6 +76,7 @@ class VoidItem extends HiveObject {
       'title': title,
       'summary': summary,
       'imageUrl': imageUrl,
+      'tldr': tldr,
       'createdAt': createdAt.toIso8601String(),
       'tags': jsonEncode(tags),
       'embedding': embedding != null ? jsonEncode(embedding) : null,
@@ -86,6 +92,7 @@ class VoidItem extends HiveObject {
       content: text,
       title: uri?.host ?? text.split('\n').first,
       summary: '',
+      tldr: '',
       imageUrl: null,
       createdAt: DateTime.now(),
       tags: [],
@@ -101,6 +108,7 @@ class VoidItem extends HiveObject {
     String? title,
     String? summary,
     String? imageUrl,
+    String? tldr,
     DateTime? createdAt,
     List<String>? tags,
     List<double>? embedding,
@@ -112,6 +120,7 @@ class VoidItem extends HiveObject {
       title: title ?? this.title,
       summary: summary ?? this.summary,
       imageUrl: imageUrl ?? this.imageUrl,
+      tldr: tldr ?? this.tldr,
       createdAt: createdAt ?? this.createdAt,
       tags: tags ?? this.tags,
       embedding: embedding ?? this.embedding,
