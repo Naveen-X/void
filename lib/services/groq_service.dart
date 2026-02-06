@@ -124,4 +124,21 @@ Return a valid JSON object with the following structure:
       return null;
     }
   }
+
+  /// Validate an API key by making a minimal request
+  static Future<bool> validateApiKey(String apiKey) async {
+    if (apiKey.isEmpty) return false;
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.groq.com/openai/v1/models'),
+        headers: {
+          'Authorization': 'Bearer $apiKey',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Groq validation error: $e');
+      return false;
+    }
+  }
 }
