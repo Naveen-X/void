@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/security_service.dart';
+import '../../services/rag_service.dart';
 import '../../data/stores/void_store.dart';
 import '../home/home_screen.dart';
 
@@ -12,19 +14,31 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  bool _showBrand = false;
-  bool _showLine = false;
+  bool _showLogo = false;
+  bool _showProgress = false;
   bool _needsRetry = false;
   double _lineProgress = 0.0;
   String _statusText = "INITIALIZING";
   
-  late AnimationController _breatheController;
+  late AnimationController _pulseController;
+  late AnimationController _rotateController;
+  late AnimationController _glowController;
   
   @override
   void initState() {
     super.initState();
     
-    _breatheController = AnimationController(
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+    
+    _rotateController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+    
+    _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3000),
     )..repeat(reverse: true);
@@ -34,7 +48,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   @override
   void dispose() {
-    _breatheController.dispose();
+    _pulseController.dispose();
+    _rotateController.dispose();
+    _glowController.dispose();
     super.dispose();
   }
 
@@ -42,27 +58,51 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     if (!mounted) return;
     setState(() { 
       _needsRetry = false;
-      _showBrand = false;
-      _showLine = false;
+      _showLogo = false;
+      _showProgress = false;
       _lineProgress = 0.0;
       _statusText = "INITIALIZING";
     });
 
-    await Future.delayed(const Duration(milliseconds: 400));
-    setState(() => _showBrand = true);
+    await Future.delayed(const Duration(milliseconds: 300));
+    setState(() => _showLogo = true);
     
-    await Future.delayed(const Duration(milliseconds: 600));
-    setState(() => _showLine = true);
+    await Future.delayed(const Duration(milliseconds: 800));
+    setState(() => _showProgress = true);
     
-    // Animate progress line
+    // Initialize and animate progress
     try {
+      // Initialize database
       await VoidStore.init();
-      for (int i = 0; i <= 100; i += 5) {
+      for (int i = 0; i <= 50; i += 5) {
         if (!mounted) return;
         setState(() => _lineProgress = i / 100);
-        await Future.delayed(const Duration(milliseconds: 20));
+        await Future.delayed(const Duration(milliseconds: 10));
       }
       setState(() => _statusText = "VAULT ONLINE");
+      
+      // Initialize RAG engine (optional - may fail on first run)
+      try {
+        setState(() => _statusText = "LOADING AI");
+        await RagService.init(onProgress: (progress) {
+          if (mounted) {
+            setState(() => _lineProgress = 0.5 + (progress * 0.4));
+          }
+        });
+        setState(() => _statusText = "AI READY");
+        
+        // Rebuild index if needed
+        await VoidStore.rebuildRagIndex();
+      } catch (e) {
+        // RAG init failed - continue without it
+        debugPrint('RAG init failed: $e');
+      }
+      
+      for (int i = 90; i <= 100; i += 2) {
+        if (!mounted) return;
+        setState(() => _lineProgress = i / 100);
+        await Future.delayed(const Duration(milliseconds: 10));
+      }
     } catch (e) {
       setState(() {
         _statusText = "INIT FAILED";
@@ -71,7 +111,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       return;
     }
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 400));
 
     // Security check
     final bool isLocked = await SecurityService.isLockEnabled();
@@ -90,11 +130,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       setState(() => _statusText = "ACCESS GRANTED");
     }
 
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 300));
     if (mounted) {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 600),
+          transitionDuration: const Duration(milliseconds: 800),
           pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
           transitionsBuilder: (context, anim, secondaryAnim, child) {
             return FadeTransition(
@@ -111,130 +151,340 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Animated breathing dot
-            AnimatedBuilder(
-              animation: _breatheController,
+      body: Stack(
+        children: [
+          // Subtle rotating grid background
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _rotateController,
               builder: (context, child) {
-                final breathe = Curves.easeInOut.transform(_breatheController.value);
-                return AnimatedOpacity(
-                  duration: const Duration(milliseconds: 500),
-                  opacity: _showBrand ? 1.0 : 0.0,
-                  child: Container(
-                    width: 8 + (4 * breathe),
-                    height: 8 + (4 * breathe),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.6 + (0.4 * breathe)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withValues(alpha: 0.2 * breathe),
-                          blurRadius: 20 * breathe,
-                          spreadRadius: 5 * breathe,
-                        ),
+                return CustomPaint(
+                  painter: _GridPainter(
+                    rotation: _rotateController.value * 2 * math.pi * 0.02,
+                    opacity: 0.03,
+                  ),
+                );
+              },
+            ),
+          ),
+          
+          // Center glow
+          Center(
+            child: AnimatedBuilder(
+              animation: _glowController,
+              builder: (context, child) {
+                final glow = Curves.easeInOut.transform(_glowController.value);
+                return Container(
+                  width: 300 + (50 * glow),
+                  height: 300 + (50 * glow),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        Colors.white.withValues(alpha: 0.03 + (0.02 * glow)),
+                        Colors.transparent,
                       ],
                     ),
                   ),
                 );
               },
             ),
-            
-            const SizedBox(height: 40),
-            
-            // Brand text with cursor
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 600),
-              opacity: _showBrand ? 1.0 : 0.0,
-              child: Hero(
-                tag: 'void_brand',
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+          ),
+          
+          // Main content
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Animated ring with logo
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 600),
+                  opacity: _showLogo ? 1.0 : 0.0,
+                  child: AnimatedScale(
+                    scale: _showLogo ? 1.0 : 0.8,
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeOutCubic,
+                    child: SizedBox(
+                      width: 120,
+                      height: 120,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Outer rotating ring
+                          AnimatedBuilder(
+                            animation: _rotateController,
+                            builder: (context, child) {
+                              return Transform.rotate(
+                                angle: _rotateController.value * 2 * math.pi,
+                                child: CustomPaint(
+                                  size: const Size(120, 120),
+                                  painter: _RingPainter(progress: _lineProgress),
+                                ),
+                              );
+                            },
+                          ),
+                          
+                          // Inner pulsing circle
+                          AnimatedBuilder(
+                            animation: _pulseController,
+                            builder: (context, child) {
+                              final pulse = Curves.easeInOut.transform(_pulseController.value);
+                              return Container(
+                                width: 60 + (8 * pulse),
+                                height: 60 + (8 * pulse),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.1 + (0.1 * pulse)),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white.withValues(alpha: 0.8 + (0.2 * pulse)),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.white.withValues(alpha: 0.3 * pulse),
+                                          blurRadius: 20,
+                                          spreadRadius: 5,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 48),
+                
+                // Brand text
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 600),
+                  opacity: _showLogo ? 1.0 : 0.0,
+                  child: AnimatedSlide(
+                    offset: _showLogo ? Offset.zero : const Offset(0, 0.2),
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeOutCubic,
+                    child: Hero(
+                      tag: 'void_brand',
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: Text(
+                          "VOID",
+                          style: GoogleFonts.ibmPlexMono(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w300,
+                            letterSpacing: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 8),
+                
+                // Tagline
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 600),
+                  opacity: _showLogo ? 1.0 : 0.0,
+                  child: Text(
+                    "SPACE",
+                    style: GoogleFonts.ibmPlexMono(
+                      color: Colors.white24,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: 8,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 80),
+                
+                // Progress section
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 400),
+                  opacity: _showProgress ? 1.0 : 0.0,
+                  child: Column(
                     children: [
-                      Text(
-                        "void",
-                        style: GoogleFonts.ibmPlexMono(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: 8,
+                      // Progress bar
+                      Container(
+                        width: 160,
+                        height: 2,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 80),
+                            width: 160 * _lineProgress,
+                            height: 2,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(1),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // Status text
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Text(
+                          _statusText,
+                          key: ValueKey(_statusText),
+                          style: GoogleFonts.ibmPlexMono(
+                            color: _statusText.contains("FAILED") 
+                                ? Colors.redAccent.withValues(alpha: 0.7)
+                                : Colors.white30,
+                            fontSize: 9,
+                            letterSpacing: 3,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ),
-            
-            const SizedBox(height: 60),
-            
-            // Progress line
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 400),
-              opacity: _showLine ? 1.0 : 0.0,
-              child: Column(
-                children: [
-                  // Progress bar
-                  Container(
-                    width: 200,
-                    height: 1,
-                    color: Colors.white.withValues(alpha: 0.1),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 100),
-                        width: 200 * _lineProgress,
-                        height: 1,
-                        color: Colors.white.withValues(alpha: 0.5),
+                
+                // Retry button
+                if (_needsRetry)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 40),
+                    child: GestureDetector(
+                      onTap: _runSequence,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                          color: Colors.white.withValues(alpha: 0.03),
+                        ),
+                        child: Text(
+                          "RETRY",
+                          style: GoogleFonts.ibmPlexMono(
+                            color: Colors.white54,
+                            fontSize: 11,
+                            letterSpacing: 4,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Status text
-                  Text(
-                    _statusText,
-                    style: GoogleFonts.ibmPlexMono(
-                      color: Colors.white24,
-                      fontSize: 10,
-                      letterSpacing: 3,
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
-            
-            // Retry button
-            if (_needsRetry)
-              Padding(
-                padding: const EdgeInsets.only(top: 32),
-                child: GestureDetector(
-                  onTap: _runSequence,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Text(
-                      "RETRY",
-                      style: GoogleFonts.ibmPlexMono(
-                        color: Colors.white38,
-                        fontSize: 11,
-                        letterSpacing: 3,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+}
+
+// Rotating ring painter
+class _RingPainter extends CustomPainter {
+  final double progress;
+  
+  _RingPainter({required this.progress});
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 4;
+    
+    // Background ring
+    final bgPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawCircle(center, radius, bgPaint);
+    
+    // Accent dots
+    final dotPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.3)
+      ..style = PaintingStyle.fill;
+    
+    for (int i = 0; i < 4; i++) {
+      final angle = (i * math.pi / 2);
+      final x = center.dx + radius * math.cos(angle);
+      final y = center.dy + radius * math.sin(angle);
+      canvas.drawCircle(Offset(x, y), 2, dotPaint);
+    }
+    
+    // Progress arc
+    if (progress > 0) {
+      final progressPaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.6)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round;
+      
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2,
+        2 * math.pi * progress,
+        false,
+        progressPaint,
+      );
+    }
+  }
+  
+  @override
+  bool shouldRepaint(covariant _RingPainter oldDelegate) => 
+      oldDelegate.progress != progress;
+}
+
+// Subtle grid background painter
+class _GridPainter extends CustomPainter {
+  final double rotation;
+  final double opacity;
+  
+  _GridPainter({required this.rotation, required this.opacity});
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.rotate(rotation);
+    canvas.translate(-size.width / 2, -size.height / 2);
+    
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: opacity)
+      ..strokeWidth = 0.5;
+    
+    const spacing = 60.0;
+    for (double i = -spacing; i < size.width + spacing; i += spacing) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+    for (double i = -spacing; i < size.height + spacing; i += spacing) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
+    }
+    
+    canvas.restore();
+  }
+  
+  @override
+  bool shouldRepaint(covariant _GridPainter oldDelegate) => 
+      oldDelegate.rotation != rotation || oldDelegate.opacity != opacity;
 }

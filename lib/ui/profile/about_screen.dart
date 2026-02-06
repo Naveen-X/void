@@ -39,7 +39,7 @@ class AboutScreen extends StatelessWidget {
           // Content
           Positioned.fill(
             child: CustomScrollView(
-              physics: const NeverScrollableScrollPhysics(),
+              physics: const BouncingScrollPhysics(),
               slivers: [
                 SliverSafeArea(
                   minimum: const EdgeInsets.only(top: 20),

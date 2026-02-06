@@ -20,9 +20,9 @@ A comprehensive list of functionality improvements for the app.
 - [ ] Dedicated "Favorites" section
 
 ### 4. Smart AI Tagging
-- [ ] Integrate real LLM for intelligent auto-tagging
-- [ ] Semantic search using embeddings
-- [ ] "Find similar items" feature
+- [x] Integrate real embedding model (all-MiniLM-L6-v2)
+- [x] Semantic search using embeddings
+- [/] \"Find similar items\" feature (backend ready, UI pending)
 
 ### 5. Cloud Sync/Backup
 - [ ] Firebase/Supabase integration
