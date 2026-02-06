@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'about_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../data/stores/void_store.dart';
 import '../../services/security_service.dart';
 import '../../services/haptic_service.dart';
@@ -71,80 +72,206 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   void _showApiKeyDialog() {
     final controller = TextEditingController(text: GroqService.getApiKey() ?? '');
-    showDialog(
+    
+    showGeneralDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Groq API Key (Llama 3)',
-          style: GoogleFonts.ibmPlexMono(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Enter your API key for AI-powered tagging and summaries.',
-              style: GoogleFonts.ibmPlexSans(color: Colors.white54, fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              style: GoogleFonts.ibmPlexMono(color: Colors.white, fontSize: 12),
-              decoration: InputDecoration(
-                hintText: 'gsk_...',
-                hintStyle: GoogleFonts.ibmPlexMono(color: Colors.white24, fontSize: 12),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () {
-                // Could open browser to get API key
-              },
-              child: Text(
-                'Get free API key →',
-                style: GoogleFonts.ibmPlexSans(
-                  color: Colors.cyanAccent,
-                  fontSize: 12,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: Colors.white54)),
-          ),
-          TextButton(
-            onPressed: () async {
-              await GroqService.setApiKey(controller.text);
-              if (mounted) {
-                Navigator.pop(context);
-                HapticService.success();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      controller.text.isEmpty ? 'API key cleared' : 'API key saved',
-                      style: GoogleFonts.ibmPlexMono(fontSize: 12),
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black.withValues(alpha: 0.8),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) => const SizedBox(),
+      transitionBuilder: (context, anim1, anim2, child) {
+        final curve = CurvedAnimation(parent: anim1, curve: Curves.easeOutQuart);
+        return Transform.scale(
+          scale: 0.9 + (0.1 * curve.value),
+          child: FadeTransition(
+            opacity: curve,
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF111111).withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 40,
+                          spreadRadius: 0,
+                        ),
+                      ],
                     ),
-                    backgroundColor: Colors.grey.shade900,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.orangeAccent.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.key_rounded, color: Colors.orangeAccent, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'GROQ API ACCESS',
+                              style: GoogleFonts.ibmPlexMono(
+                                fontSize: 13,
+                                letterSpacing: 2,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        Text(
+                          'Configure the neural engine.',
+                          style: GoogleFonts.ibmPlexSans(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Enter your Groq Cloud API key to enable "Human Curator" mode for auto-tagging and detailed aesthetics.',
+                          style: GoogleFonts.ibmPlexSans(
+                            color: Colors.white54,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Input Field
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                          ),
+                          child: TextField(
+                            controller: controller,
+                            style: GoogleFonts.ibmPlexMono(color: Colors.white, fontSize: 13),
+                            decoration: InputDecoration(
+                              hintText: 'gsk_8h9s...',
+                              hintStyle: GoogleFonts.ibmPlexMono(color: Colors.white24, fontSize: 13),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.all(16),
+                              prefixIcon: Icon(Icons.password_rounded, size: 18, color: Colors.white30),
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Action Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: GestureDetector(
+                                onTap: () async {
+                                  final Uri url = Uri.parse('https://console.groq.com/keys');
+                                  if (!await launchUrl(url)) {
+                                     // ignore
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'GET KEY',
+                                        style: GoogleFonts.ibmPlexMono(
+                                          color: Colors.white70,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(Icons.open_in_new_rounded, size: 12, color: Colors.white54),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 4,
+                              child: GestureDetector(
+                                onTap: () async {
+                                  await GroqService.setApiKey(controller.text);
+                                  if (mounted) {
+                                    Navigator.pop(context);
+                                    HapticService.success();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          controller.text.isEmpty ? 'NEURAL ENGINE DISCONNECTED' : 'NEURAL ENGINE LINKED',
+                                          style: GoogleFonts.ibmPlexMono(fontSize: 12, letterSpacing: 1),
+                                        ),
+                                        backgroundColor: const Color(0xFF1A1A1A),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(color: Colors.white.withValues(alpha: 0.15), blurRadius: 10, spreadRadius: 0),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'CONNECT',
+                                      style: GoogleFonts.ibmPlexMono(
+                                        color: Colors.black,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              }
-            },
-            child: Text('Save', style: TextStyle(color: Colors.cyanAccent)),
+                ),
+              ),
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

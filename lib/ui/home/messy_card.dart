@@ -1,5 +1,6 @@
 // ui/home/messy_card.dart
 import 'dart:io';
+import 'dart:ui';
 import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -336,31 +337,37 @@ class _MessyCardState extends State<MessyCard> with SingleTickerProviderStateMix
                             Positioned(
                               top: 10,
                               left: 10,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.6),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: typeColor.withValues(alpha: 0.3)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      _getIconForType(widget.item.type),
-                                      size: 10,
-                                      color: typeColor,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.3),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: typeColor.withValues(alpha: 0.3)),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      widget.item.type.toUpperCase(),
-                                      style: GoogleFonts.ibmPlexMono(
-                                        color: typeColor,
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          _getIconForType(widget.item.type),
+                                          size: 10,
+                                          color: typeColor,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          widget.item.type.toUpperCase(),
+                                          style: GoogleFonts.ibmPlexMono(
+                                            color: typeColor,
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -428,21 +435,37 @@ class _MessyCardState extends State<MessyCard> with SingleTickerProviderStateMix
                                 child: Wrap(
                                   spacing: 5,
                                   runSpacing: 5,
-                                  children: widget.item.tags.take(3).map((tag) => Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: typeColor.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      '#$tag',
-                                      style: GoogleFonts.ibmPlexMono(
-                                        color: typeColor.withValues(alpha: 0.8),
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w500,
+                                  children: [
+                                    // Show only 1 tag
+                                    ...widget.item.tags.take(1).map((tag) => Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: typeColor.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(6),
                                       ),
-                                    ),
-                                  )).toList(),
+                                      child: Text(
+                                        '#$tag',
+                                        style: GoogleFonts.ibmPlexMono(
+                                          color: typeColor.withValues(alpha: 0.8),
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    )),
+                                    // Overflow indicator
+                                    if (widget.item.tags.length > 1)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                                        child: Text(
+                                          '...',
+                                          style: GoogleFonts.ibmPlexMono(
+                                            color: Colors.white.withValues(alpha: 0.3),
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                           ],

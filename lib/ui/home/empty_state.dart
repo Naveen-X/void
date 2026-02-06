@@ -11,27 +11,28 @@ class VoidEmptyState extends StatefulWidget {
 }
 
 class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStateMixin {
-  late AnimationController _scannerController;
-  late AnimationController _ringsController;
+  late AnimationController _pulseController;
+  late AnimationController _rotateController;
   
   @override
   void initState() {
     super.initState();
-    _scannerController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat();
     
-    _ringsController = AnimationController(
+    _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 10),
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+    
+    _rotateController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
     )..repeat();
   }
 
   @override
   void dispose() {
-    _scannerController.dispose();
-    _ringsController.dispose();
+    _pulseController.dispose();
+    _rotateController.dispose();
     super.dispose();
   }
 
@@ -40,21 +41,13 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
     return Container(
       decoration: BoxDecoration(
         color: VoidDesign.bgPrimary,
-        gradient: RadialGradient(
-          center: Alignment.center,
-          radius: 1.5,
-          colors: [
-            const Color(0xFF1A1A1A).withValues(alpha: 0.3),
-            VoidDesign.bgPrimary,
-          ],
-        ),
       ),
       child: Stack(
         children: [
-          // 1. GHOST MASONRY BACKGROUND
+          // 1. GHOST MASONRY BACKGROUND (Subtle)
           Positioned.fill(
             child: Opacity(
-              opacity: 0.03,
+              opacity: 0.02,
               child: CustomPaint(
                 painter: _GhostMasonryPainter(),
               ),
@@ -66,117 +59,89 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // THE SCANNING CORE
-                AnimatedBuilder(
-                  animation: Listenable.merge([_scannerController, _ringsController]),
-                  builder: (context, _) {
-                    return SizedBox(
-                      width: 200,
-                      height: 200,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Concentric Pulse Rings
-                          ...List.generate(3, (i) {
-                            final double progress = (_scannerController.value + (i * 0.33)) % 1.0;
-                            return Container(
-                              width: 60 + (progress * 140),
-                              height: 60 + (progress * 140),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: (1.0 - progress) * 0.1),
-                                  width: 1,
-                                ),
-                              ),
-                            );
-                          }),
-                          
-                          // Rotating HUD Ring
-                          Transform.rotate(
-                            angle: _ringsController.value * 2 * math.pi,
+                // ANIMATED RING ORB (Target)
+                SizedBox(
+                  width: 120,
+                  height: 120,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Outer rotating ring
+                      AnimatedBuilder(
+                        animation: _rotateController,
+                        builder: (context, child) {
+                          return Transform.rotate(
+                            angle: _rotateController.value * 2 * math.pi,
                             child: CustomPaint(
                               size: const Size(120, 120),
-                              painter: _HudRingPainter(),
+                              painter: _RingPainter(),
                             ),
-                          ),
-                          
-                          // Central Icon Glass
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: VoidDesign.bgCard.withValues(alpha: 0.8),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: VoidDesign.borderMedium),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.5),
-                                  blurRadius: 30,
-                                  spreadRadius: 5,
-                                ),
-                                BoxShadow(
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                  blurRadius: 10,
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.all_inclusive_rounded,
-                              color: VoidDesign.textPrimary,
-                              size: 32,
-                            ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                    );
-                  },
+                      
+                      // Inner pulsing circle
+                      AnimatedBuilder(
+                        animation: _pulseController,
+                        builder: (context, child) {
+                          final pulse = Curves.easeInOut.transform(_pulseController.value);
+                          return Container(
+                            width: 60 + (8 * pulse),
+                            height: 60 + (8 * pulse),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withValues(alpha: 0.05),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.1 + (0.1 * pulse)),
+                                width: 1,
+                              ),
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withValues(alpha: 0.8 + (0.2 * pulse)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.white.withValues(alpha: 0.3 * pulse),
+                                      blurRadius: 20,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
                 
-                const SizedBox(height: 40),
+                const SizedBox(height: 48),
                 
-                // SCANNER STATUS
+                // MAIN TEXT
                 Text(
-                  "NO FRAGMENTS DETECTED",
+                  "THE VOID IS SILENT",
                   style: GoogleFonts.ibmPlexMono(
-                    fontSize: 14,
-                    letterSpacing: 4,
+                    fontSize: 13,
+                    letterSpacing: 6,
                     fontWeight: FontWeight.w400,
                     color: VoidDesign.textSecondary,
                   ),
                 ),
                 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 
+                // SUBTEXT
                 Text(
-                  "VOID_SCAN_ACTIVE",
-                  style: GoogleFonts.ibmPlexMono(
-                    fontSize: 10,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent.withValues(alpha: 0.5),
-                  ),
-                ),
-                
-                const SizedBox(height: 60),
-                
-                // TECHNICAL READOUT BOX
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.02),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildReadoutLine("SIGNAL", "STRETCHED"),
-                      const SizedBox(height: 8),
-                      _buildReadoutLine("INTENSITY", "0.00%"),
-                      const SizedBox(height: 8),
-                      _buildReadoutLine("ORIGIN", "LOCAL_VAULT"),
-                    ],
+                  "Add a fragment to disturb the peace.",
+                  style: GoogleFonts.ibmPlexSans(
+                    fontSize: 14,
+                    color: VoidDesign.textTertiary,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],
@@ -186,33 +151,37 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
       ),
     );
   }
+}
 
-  Widget _buildReadoutLine(String label, String value) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 80,
-          child: Text(
-            label,
-            style: GoogleFonts.ibmPlexMono(
-              fontSize: 9,
-              color: VoidDesign.textTertiary.withValues(alpha: 0.5),
-              letterSpacing: 1,
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style: GoogleFonts.ibmPlexMono(
-            fontSize: 9,
-            color: VoidDesign.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
+// Rotating ring painter (Ported from Splash Screen)
+class _RingPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 4;
+    
+    // Background ring
+    final bgPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawCircle(center, radius, bgPaint);
+    
+    // Accent dots
+    final dotPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.3)
+      ..style = PaintingStyle.fill;
+    
+    for (int i = 0; i < 4; i++) {
+      final angle = (i * math.pi / 2);
+      final x = center.dx + radius * math.cos(angle);
+      final y = center.dy + radius * math.sin(angle);
+      canvas.drawCircle(Offset(x, y), 2, dotPaint);
+    }
   }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _GhostMasonryPainter extends CustomPainter {
@@ -242,30 +211,6 @@ class _GhostMasonryPainter extends CustomPainter {
       );
       
       currentY += math.max(h1, h2) + 20;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _HudRingPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.15)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-
-    const double gap = 0.4;
-    for (int i = 0; i < 4; i++) {
-      canvas.drawArc(
-        Rect.fromCircle(center: Offset(size.width / 2, size.height / 2), radius: size.width / 2),
-        (i * math.pi / 2) + gap,
-        (math.pi / 2) - (gap * 2),
-        false,
-        paint,
-      );
     }
   }
 

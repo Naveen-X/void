@@ -316,22 +316,30 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
           // Header with image/icon
           SliverAppBar(
             expandedHeight: _editedItem.imageUrl != null || _isFileType(_editedItem.type) ? 300 : 120,
-            backgroundColor: VoidDesign.bgPrimary,
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
             elevation: 0,
             pinned: true,
             stretch: false,
             leading: Padding(
               padding: const EdgeInsets.all(8.0),
               child: ClipOval(
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white,
-                      size: 16,
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                     ),
-                    onPressed: () => Navigator.pop(context),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ),
                 ),
               ),
@@ -342,32 +350,47 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: ClipOval(
-                    child: Container(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      child: IconButton(
-                        icon: Icon(
-                          _isEditMode ? Icons.check_rounded : Icons.edit_rounded,
-                          color: _isEditMode ? Colors.greenAccent : Colors.white,
-                          size: 20,
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                         ),
-                        onPressed: _isEditMode ? _saveChanges : _toggleEditMode,
+                        child: IconButton(
+                          icon: Icon(
+                            _isEditMode ? Icons.check_rounded : Icons.edit_rounded,
+                            color: _isEditMode ? Colors.greenAccent : Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: _isEditMode ? _saveChanges : _toggleEditMode,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              // Cancel (in edit mode) or Delete button
+              // Cancel (in edit mode ONLY)
+              if (_isEditMode)
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: ClipOval(
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    child: IconButton(
-                      icon: Icon(
-                        _isEditMode ? Icons.close_rounded : Icons.delete_outline_rounded,
-                        color: Colors.redAccent,
-                        size: 20,
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                       ),
-                      onPressed: _isEditMode ? _toggleEditMode : () => _confirmDelete(context),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.redAccent,
+                          size: 20,
+                        ),
+                        onPressed: _toggleEditMode,
+                      ),
                     ),
                   ),
                 ),
@@ -431,13 +454,46 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> with SingleTickerPr
                         _buildContentSection(),
                       ],
 
-                      // Open file button for file types
                       if (_isFileType(_editedItem.type)) ...[
                         const SizedBox(height: VoidDesign.spaceXL),
                         _buildOpenFileButton(typeColor),
                       ],
-
-
+                      
+                      // Delete Button (Bottom)
+                      if (!_isEditMode) ...[
+                        const SizedBox(height: 60),
+                        GestureDetector(
+                          onTap: () => _confirmDelete(context),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.redAccent.withValues(alpha: 0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.delete_forever_rounded, color: Colors.redAccent.withValues(alpha: 0.8), size: 22),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'ERASE FROM VOID',
+                                  style: GoogleFonts.ibmPlexMono(
+                                    color: Colors.redAccent,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
 
                       const SizedBox(height: 120),
                     ],
