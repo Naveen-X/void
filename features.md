@@ -111,8 +111,60 @@ A comprehensive list of functionality improvements for the app.
 
 ## 🎯 Recommended Priority
 
-1. **Edit Items** - Most fundamental missing feature
+1. **Edit Items** - Most fundamental missing feature ✅
 2. **Favorites/Pinning** - Quick win, high impact
 3. **Swipe Actions** - Better UX
 4. **Folders/Collections** - Organization
 5. **Cloud Sync** - Data safety
+
+---
+
+## 🧠 AI Enhancements (NEW)
+
+### 20. Auto-Collections
+- [ ] AI suggests collections based on content patterns
+- [ ] Smart grouping by topic/domain
+
+### 21. Smart Duplicate Detection
+- [ ] Warn when saving a similar/duplicate link
+- [ ] "You already saved this" modal
+
+### 22. Related Items
+- [ ] "You might also like" based on current item
+- [ ] Cross-reference by tags and embeddings
+
+### 23. AI Daily Summary
+- [ ] AI-generated summary of recent saves
+- [ ] Weekly trends and insights
+
+---
+
+## 🎨 Polish & UX (NEW)
+
+### 24. Onboarding Flow
+- [ ] First-launch walkthrough
+- [ ] Feature highlights tour
+- [ ] Quick tutorial overlay
+
+### 25. Pull-to-Refresh Animation
+- [ ] Enhanced refresh animation for home screen
+- [ ] Branded loading indicator
+
+### 26. Haptic Feedback Polish
+- [ ] Consistent haptics across all interactions
+- [ ] Intensity settings
+
+---
+
+## 🔐 Security Enhancements (NEW)
+
+### 27. Encrypted Vault Mode
+- [ ] Full local encryption for sensitive notes
+- [ ] Biometric unlock for vault
+- [ ] Auto-lock timeout
+
+### 28. Import from Other Apps
+- [ ] Pocket import
+- [ ] Instapaper import
+- [ ] Raindrop.io import
+- [ ] Browser bookmarks import

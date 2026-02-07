@@ -68,27 +68,9 @@ class VoidDesign {
   // COLORS
   // ──────────────────────────────────────────────────────────────────────────
   
-  /// Primary background
-  static const Color bgPrimary = Colors.black;
+  // PRIMARY COLORS are now accessed via VoidTheme.of(context)
+  // Retaining these currently for reference during refactor, but they should be replaced.
   
-  /// Card background
-  static const Color bgCard = Color(0xFF111111);
-  
-  /// Subtle border color
-  static Color borderSubtle = Colors.white.withValues(alpha: 0.08);
-  
-  /// Medium border color
-  static Color borderMedium = Colors.white.withValues(alpha: 0.12);
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // TEXT COLORS
-  // ──────────────────────────────────────────────────────────────────────────
-  
-  static const Color textPrimary = Colors.white;
-  static Color textSecondary = Colors.white.withValues(alpha: 0.7);
-  static Color textTertiary = Colors.white.withValues(alpha: 0.4);
-  static Color textMuted = Colors.white.withValues(alpha: 0.25);
-
   // ──────────────────────────────────────────────────────────────────────────
   // ANIMATION DURATIONS
   // ──────────────────────────────────────────────────────────────────────────
@@ -127,7 +109,7 @@ class VoidDesign {
       case 'link':
         return Colors.blueAccent;
       case 'note':
-        return Colors.white70;
+        return Colors.white70; // This might need to be dynamic later
       case 'image':
         return Colors.tealAccent;
       case 'pdf':

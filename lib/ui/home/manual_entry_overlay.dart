@@ -70,11 +70,15 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
     try {
       await GroqService.init(); // Ensure AI service is ready
       VoidItem item;
-      if (text.startsWith('http')) {
+      if (_isLink) {
+        String url = text;
+        if (!url.startsWith('http')) {
+          url = 'https://$url';
+        }
         try {
-          item = await LinkMetadataService.fetch(text).timeout(const Duration(seconds: 20));
+          item = await LinkMetadataService.fetch(url).timeout(const Duration(seconds: 20));
         } catch (_) {
-          item = VoidItem.fallback(text, type: 'link');
+          item = VoidItem.fallback(url, type: 'link');
         }
       } else {
         try {
@@ -117,7 +121,17 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
     }
   }
 
-  bool get _isLink => _controller.text.startsWith('http');
+  bool get _isLink {
+    final text = _controller.text.trim();
+    // Regex for detecting URLs with or without protocol
+    final urlRegex = RegExp(
+      r'^(https?:\/\/)?' // Protocol (optional)
+      r'(([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})' // Domain
+      r'(:\d+)?(\/.*)?$', // Port and Path (optional)
+      caseSensitive: false,
+    );
+    return urlRegex.hasMatch(text);
+  }
   bool get _isVideo => _isLink && (_controller.text.contains('youtube.com') || _controller.text.contains('youtu.be'));
   bool get _isSocial => _isLink && (_controller.text.contains('instagram.com') || _controller.text.contains('twitter.com') || _controller.text.contains('x.com') || _controller.text.contains('threads.net'));
   bool get _hasContent => _controller.text.trim().isNotEmpty;
@@ -261,7 +275,7 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                       maxLines: 5,
                       minLines: 1,
                       enabled: !_isProcessing,
-                      style: GoogleFonts.ibmPlexSans(
+                      style: GoogleFonts.ibmPlexMono(
                         color: Colors.white,
                         fontSize: 16,
                         height: 1.5,
@@ -269,7 +283,7 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                       cursorColor: _isLink ? Colors.blueAccent : Colors.white,
                       decoration: InputDecoration(
                         hintText: "Paste a link or type a note...",
-                        hintStyle: TextStyle(
+                        hintStyle: GoogleFonts.ibmPlexMono(
                           color: Colors.white.withValues(alpha: 0.15),
                           fontSize: 16,
                         ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../profile/profile_screen.dart';
 import '../theme/void_design.dart';
+import '../theme/void_theme.dart';
 
 class VoidHeader extends StatelessWidget {
   final double blurOpacity;
@@ -24,6 +25,7 @@ class VoidHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = VoidTheme.of(context);
     final double statusBarHeight = MediaQuery.of(context).padding.top;
     const double headerContentHeight = 56.0;
     const double tagBarHeight = 52.0;
@@ -43,10 +45,10 @@ class VoidHeader extends StatelessWidget {
         child: Container(
           height: totalHeight,
           decoration: BoxDecoration(
-            color: VoidDesign.bgPrimary.withValues(alpha: 0.4 + (0.3 * blurOpacity)),
+            color: theme.bgPrimary.withValues(alpha: 0.4 + (0.3 * blurOpacity)),
             border: Border(
               bottom: BorderSide(
-                color: VoidDesign.borderSubtle,
+                color: theme.borderSubtle,
                 width: 1,
               ),
             ),
@@ -71,7 +73,7 @@ class VoidHeader extends StatelessWidget {
                             fontSize: 28,
                             fontWeight: FontWeight.w400,
                             letterSpacing: -1.0,
-                            color: VoidDesign.textPrimary,
+                            color: theme.textPrimary,
                           ),
                         ),
                       ),
@@ -87,7 +89,7 @@ class VoidHeader extends StatelessWidget {
                           height: 36,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: theme.textPrimary.withValues(alpha: 0.1),
                             border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                           ),
                           child: const Icon(Icons.person, size: 18, color: Colors.white54),
@@ -113,6 +115,7 @@ class VoidHeader extends StatelessWidget {
 
 
   Widget _buildTagsRow(BuildContext context) {
+    final theme = VoidTheme.of(context);
     return ListView.builder(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
@@ -136,13 +139,13 @@ class VoidHeader extends StatelessWidget {
                   border: Border.all(
                     color: isAllSelected 
                       ? Colors.white.withValues(alpha: 0.3)
-                      : VoidDesign.borderSubtle,
+                      : theme.borderSubtle,
                   ),
                 ),
                 child: Text(
                   "All",
                   style: GoogleFonts.ibmPlexSans(
-                    color: isAllSelected ? Colors.white : Colors.white38,
+                    color: isAllSelected ? theme.textPrimary : theme.textTertiary,
                     fontSize: 13,
                     fontWeight: isAllSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
@@ -181,7 +184,7 @@ class VoidHeader extends StatelessWidget {
                   Text(
                     tag,
                     style: GoogleFonts.ibmPlexSans(
-                      color: isSelected ? tagColor : Colors.white38,
+                      color: isSelected ? tagColor : theme.textTertiary,
                       fontSize: 13,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                     ),

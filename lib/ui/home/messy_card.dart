@@ -6,9 +6,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
-import '../../data/models/void_item.dart';
-import '../../services/haptic_service.dart';
-import 'item_detail_screen.dart';
+import 'package:void_space/data/models/void_item.dart';
+import 'package:void_space/services/haptic_service.dart';
+import 'package:void_space/ui/detail/item_detail_screen.dart';
 
 class MessyCard extends StatefulWidget {
   final VoidItem item;

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../theme/void_design.dart';
+import '../theme/void_theme.dart';
 
 class VoidEmptyState extends StatefulWidget {
   const VoidEmptyState({super.key});
@@ -38,9 +38,10 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final theme = VoidTheme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: VoidDesign.bgPrimary,
+        color: theme.bgPrimary,
       ),
       child: Stack(
         children: [
@@ -49,7 +50,7 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
             child: Opacity(
               opacity: 0.02,
               child: CustomPaint(
-                painter: _GhostMasonryPainter(),
+                painter: _GhostMasonryPainter(color: theme.textPrimary),
               ),
             ),
           ),
@@ -74,7 +75,7 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
                             angle: _rotateController.value * 2 * math.pi,
                             child: CustomPaint(
                               size: const Size(120, 120),
-                              painter: _RingPainter(),
+                              painter: _RingPainter(color: theme.textPrimary),
                             ),
                           );
                         },
@@ -90,9 +91,9 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
                             height: 60 + (8 * pulse),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white.withValues(alpha: 0.05),
+                              color: theme.textPrimary.withValues(alpha: 0.05),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.1 + (0.1 * pulse)),
+                                color: theme.textPrimary.withValues(alpha: 0.1 + (0.1 * pulse)),
                                 width: 1,
                               ),
                             ),
@@ -102,10 +103,10 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
                                 height: 12,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Colors.white.withValues(alpha: 0.8 + (0.2 * pulse)),
+                                  color: theme.textPrimary.withValues(alpha: 0.8 + (0.2 * pulse)),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.white.withValues(alpha: 0.3 * pulse),
+                                      color: theme.textPrimary.withValues(alpha: 0.3 * pulse),
                                       blurRadius: 20,
                                       spreadRadius: 5,
                                     ),
@@ -129,7 +130,7 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
                     fontSize: 13,
                     letterSpacing: 6,
                     fontWeight: FontWeight.w400,
-                    color: VoidDesign.textSecondary,
+                    color: theme.textSecondary,
                   ),
                 ),
                 
@@ -140,7 +141,7 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
                   "Add a fragment to disturb the peace.",
                   style: GoogleFonts.ibmPlexSans(
                     fontSize: 14,
-                    color: VoidDesign.textTertiary,
+                    color: theme.textTertiary,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -155,6 +156,10 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
 
 // Rotating ring painter (Ported from Splash Screen)
 class _RingPainter extends CustomPainter {
+  final Color color;
+  
+  _RingPainter({required this.color});
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
@@ -162,14 +167,14 @@ class _RingPainter extends CustomPainter {
     
     // Background ring
     final bgPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
+      ..color = color.withValues(alpha: 0.05)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawCircle(center, radius, bgPaint);
     
     // Accent dots
     final dotPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill;
     
     for (int i = 0; i < 4; i++) {
@@ -185,10 +190,14 @@ class _RingPainter extends CustomPainter {
 }
 
 class _GhostMasonryPainter extends CustomPainter {
+  final Color color;
+  
+  _GhostMasonryPainter({required this.color});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
