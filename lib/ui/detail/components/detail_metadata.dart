@@ -78,7 +78,7 @@ class DetailMetadata extends StatelessWidget {
                       size: 12, color: theme.textTertiary),
                   const SizedBox(width: 6),
                   Text(
-                    formatRelativeDate(item.createdAt),
+                    formatLivingDate(item.createdAt),
                     style: GoogleFonts.ibmPlexMono(
                       color: theme.textTertiary,
                       fontSize: 10,
@@ -118,7 +118,9 @@ class DetailMetadata extends StatelessWidget {
                     child: Text(
                       '#$tag',
                       style: GoogleFonts.ibmPlexMono(
-                        color: typeColor.withValues(alpha: 0.9),
+                        color: theme.brightness == Brightness.dark 
+                           ? typeColor.withValues(alpha: 0.9)
+                           : typeColor.withValues(alpha: 1.0),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -143,11 +145,12 @@ class DetailMetadata extends StatelessWidget {
                     Icon(Icons.add_rounded, size: 14, color: theme.textTertiary),
                     const SizedBox(width: 4),
                     Text(
-                      'tag',
+                      'ADD TAG',
                       style: GoogleFonts.ibmPlexMono(
                         color: theme.textTertiary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../theme/void_theme.dart';
 
 class VoidDialog {
   static Future<bool?> show({
@@ -16,15 +17,16 @@ class VoidDialog {
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) => const SizedBox(),
       transitionBuilder: (context, anim1, anim2, child) {
+        final theme = VoidTheme.of(context);
         return ScaleTransition(
           scale: CurvedAnimation(parent: anim1, curve: Curves.easeOutBack),
           child: FadeTransition(
             opacity: anim1,
             child: AlertDialog(
-              backgroundColor: const Color(0xFF0A0A0A),
+              backgroundColor: theme.bgCard,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28),
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
+                side: BorderSide(color: theme.borderSubtle, width: 1),
               ),
               contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
               content: Column(
@@ -43,7 +45,7 @@ class VoidDialog {
                     title,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.ibmPlexMono(
-                      color: Colors.white,
+                      color: theme.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.5,
@@ -54,7 +56,7 @@ class VoidDialog {
                     message,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5), 
+                      color: theme.textSecondary, 
                       fontSize: 13, 
                       height: 1.5
                     ),
@@ -66,14 +68,14 @@ class VoidDialog {
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(context, false),
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                            side: BorderSide(color: theme.borderSubtle),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
                           child: Text(
                             "CANCEL", 
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.3), 
+                              color: theme.textMuted, 
                               fontSize: 12, 
                               fontWeight: FontWeight.bold
                             )

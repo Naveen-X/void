@@ -43,19 +43,22 @@ IconData getIconForType(String type) {
 Color getColorForType(String type) {
   switch (type) {
     case 'link':
-      return Colors.blueAccent;
+      return const Color(0xFF4D88FF); // Bio-Digital Blue
     case 'image':
-      return Colors.tealAccent;
+      return const Color(0xFF00F2AD); // Neural Teal
     case 'pdf':
-      return Colors.redAccent;
+      return const Color(0xFFFF4D4D); // Error Red
     case 'document':
-      return Colors.orangeAccent;
+      return const Color(0xFFFFB34D); // Data Amber
     case 'video':
-      return Colors.purpleAccent;
+      return const Color(0xFFB34DFF); // Logic Purple
     case 'social':
-      return Colors.pinkAccent;
+      return const Color(0xFFFF4D94); // Network Pink
+    case 'note':
+    case 'text':
+      return const Color(0xFF00D2D2); // Neural Cyan
     default:
-      return Colors.white54;
+      return const Color(0xFF888888); // Neutral Data
   }
 }
 
@@ -78,4 +81,32 @@ String getTimeAgo(DateTime date) {
   if (duration.inHours < 24) return '${duration.inHours}h ago';
   if (duration.inDays < 7) return '${duration.inDays}d ago';
   return '${date.day}/${date.month}/${date.year}';
+}
+
+/// Advanced "Living" date formatter for professional tech UI
+String formatLivingDate(DateTime date) {
+  final now = DateTime.now();
+  final diff = now.difference(date);
+  
+  // Format helpers
+  String twoDigits(int n) => n.toString().padLeft(2, '0');
+  final timeStr = '${twoDigits(date.hour)}:${twoDigits(date.minute)}';
+  final dateStr = '${twoDigits(date.day)}/${twoDigits(date.month)}/${date.year.toString().substring(2)}';
+  
+  if (diff.inMinutes < 1) return 'JUST NOW';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  
+  if (diff.inDays < 7) {
+    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final weekday = dayNames[date.weekday - 1];
+    return '${diff.inDays}d ago | $weekday $timeStr';
+  }
+  
+  final weeks = (diff.inDays / 7).floor();
+  if (weeks < 4) {
+    return '${weeks}w ago | $dateStr $timeStr';
+  }
+  
+  return '$dateStr | $timeStr';
 }

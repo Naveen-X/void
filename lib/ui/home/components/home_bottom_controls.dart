@@ -60,7 +60,7 @@ class HomeBottomControls extends StatelessWidget {
       height: 52,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: isSelectionMode ? theme.bgCard : const Color(0xFF161616),
+        color: isSelectionMode ? theme.bgCard : theme.bgCard,
         borderRadius: BorderRadius.circular(26),
         border: Border.all(
           color: isSelectionMode ? theme.bgCard : theme.borderSubtle,
@@ -68,8 +68,8 @@ class HomeBottomControls extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isSelectionMode
-                ? theme.bgCard.withValues(alpha: 0.1)
-                : Colors.black.withValues(alpha: 0.4),
+                ? Colors.black.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: theme.brightness == Brightness.dark ? 0.4 : 0.08),
             blurRadius: 24,
             offset: const Offset(0, 12),
           )
@@ -100,7 +100,7 @@ class HomeBottomControls extends StatelessWidget {
                         cursorColor: theme.textPrimary,
                         decoration: InputDecoration(
                           hintText: "Search the void...",
-                          hintStyle: TextStyle(color: theme.textPrimary.withValues(alpha: 0.1)),
+                          hintStyle: TextStyle(color: theme.textPrimary.withValues(alpha: theme.brightness == Brightness.dark ? 0.1 : 0.25)),
                           border: InputBorder.none,
                         ),
                       ),
@@ -180,7 +180,7 @@ class HomeBottomControls extends StatelessWidget {
       height: 52,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: isSelectionMode ? Colors.redAccent : const Color(0xFF161616),
+        color: isSelectionMode ? Colors.redAccent : theme.bgCard,
         shape: BoxShape.circle,
         border: Border.all(
           color: isSelectionMode
@@ -192,7 +192,7 @@ class HomeBottomControls extends StatelessWidget {
           BoxShadow(
             color: isSelectionMode
                 ? Colors.redAccent.withValues(alpha: 0.2)
-                : Colors.black.withValues(alpha: 0.4),
+                : Colors.black.withValues(alpha: theme.brightness == Brightness.dark ? 0.4 : 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           )

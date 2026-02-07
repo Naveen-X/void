@@ -4,6 +4,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../theme/void_theme.dart';
 
 /// An animated "404" text with random glitch effect
 class Glitchy404 extends StatefulWidget {
@@ -34,6 +35,7 @@ class _Glitchy404State extends State<Glitchy404>
 
   @override
   Widget build(BuildContext context) {
+    final theme = VoidTheme.of(context);
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -75,10 +77,10 @@ class _Glitchy404State extends State<Glitchy404>
               style: GoogleFonts.ibmPlexMono(
                 fontSize: 40,
                 fontWeight: FontWeight.w900,
-                color: Colors.white,
+                color: theme.textPrimary,
                 shadows: [
                   BoxShadow(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: theme.textPrimary.withValues(alpha: 0.1),
                     blurRadius: 20,
                   ),
                 ],

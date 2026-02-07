@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../theme/void_theme.dart';
 import 'package:void_space/data/models/void_item.dart';
 import 'package:void_space/services/haptic_service.dart';
 
@@ -14,6 +15,7 @@ class LinkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = VoidTheme.of(context);
     return GestureDetector(
       onTap: () {
         HapticService.light();
@@ -64,7 +66,7 @@ class LinkCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.ibmPlexMono(
-                      color: Colors.white38,
+                      color: theme.textSecondary.withValues(alpha: 0.5),
                       fontSize: 11,
                     ),
                   ),

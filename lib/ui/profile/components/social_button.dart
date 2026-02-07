@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../services/haptic_service.dart';
+import '../../theme/void_theme.dart';
 
 /// A button for social media links with blur effect
 class SocialButton extends StatelessWidget {
@@ -26,6 +27,7 @@ class SocialButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = VoidTheme.of(context);
     return GestureDetector(
       onTap: () async {
         HapticService.light();
@@ -45,7 +47,7 @@ class SocialButton extends StatelessWidget {
           child: Container(
             height: 48,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: theme.textPrimary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -58,14 +60,14 @@ class SocialButton extends StatelessWidget {
                   : MainAxisAlignment.start,
               mainAxisSize: MainAxisSize.max,
               children: [
-                Icon(icon, size: 18, color: Colors.white70),
+                Icon(icon, size: 18, color: theme.textSecondary),
                 if (!isFullWidth) const SizedBox(width: 12),
                 if (isFullWidth) const SizedBox(width: 8),
                 Text(
                   label,
                   style: GoogleFonts.ibmPlexMono(
                     fontSize: 13,
-                    color: Colors.white,
+                    color: theme.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

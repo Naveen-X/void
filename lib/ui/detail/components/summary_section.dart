@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../theme/void_theme.dart';
 import 'package:void_space/data/models/void_item.dart';
 import 'package:void_space/services/groq_service.dart';
 
@@ -20,6 +21,7 @@ class SummarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = VoidTheme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -37,7 +39,7 @@ class SummarySection extends StatelessWidget {
             Text(
               'SUMMARY',
               style: GoogleFonts.ibmPlexMono(
-                color: Colors.white24,
+                color: theme.textSecondary.withValues(alpha: theme.brightness == Brightness.dark ? 0.24 : 0.4),
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2,
@@ -90,10 +92,10 @@ class SummarySection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: theme.textPrimary.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: theme.textPrimary.withValues(alpha: 0.1),
               ),
             ),
             child: Column(
@@ -119,7 +121,7 @@ class SummarySection extends StatelessWidget {
                 Text(
                   item.tldr ?? '',
                   style: GoogleFonts.ibmPlexSans(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: theme.textPrimary.withValues(alpha: 0.9),
                     fontSize: 16,
                     height: 1.6,
                     fontWeight: FontWeight.w500,
@@ -134,7 +136,7 @@ class SummarySection extends StatelessWidget {
           Text(
             item.summary ?? '',
             style: GoogleFonts.ibmPlexSans(
-              color: Colors.white70,
+              color: theme.textSecondary,
               fontSize: 15,
               height: 1.7,
             ),

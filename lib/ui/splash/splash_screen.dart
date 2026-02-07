@@ -7,6 +7,7 @@ import '../../services/security_service.dart';
 import '../../services/groq_service.dart';
 import '../../data/stores/void_store.dart';
 import '../home/home_screen.dart';
+import '../theme/void_theme.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -139,8 +140,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    final theme = VoidTheme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.bgPrimary,
       body: Stack(
         children: [
           // Subtle rotating grid background
@@ -151,7 +155,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 return CustomPaint(
                   painter: _GridPainter(
                     rotation: _rotateController.value * 2 * math.pi * 0.02,
-                    opacity: 0.03,
+                    opacity: isDark ? 0.03 : 0.05,
+                    color: theme.textPrimary,
                   ),
                 );
               },
@@ -171,7 +176,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        Colors.white.withValues(alpha: 0.03 + (0.02 * glow)),
+                        theme.textPrimary.withValues(alpha: (isDark ? 0.03 : 0.05) + (0.02 * glow)),
                         Colors.transparent,
                       ],
                     ),
@@ -208,7 +213,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                 angle: _rotateController.value * 2 * math.pi,
                                 child: CustomPaint(
                                   size: const Size(120, 120),
-                                  painter: _RingPainter(progress: _lineProgress),
+                                  painter: _RingPainter(
+                                    progress: _lineProgress,
+                                    color: theme.textPrimary,
+                                  ),
                                 ),
                               );
                             },
@@ -224,9 +232,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                 height: 60 + (8 * pulse),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Colors.white.withValues(alpha: 0.05),
+                                  color: theme.bgCard,
                                   border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.1 + (0.1 * pulse)),
+                                    color: theme.textPrimary.withValues(alpha: 0.1 + (0.1 * pulse)),
                                     width: 1,
                                   ),
                                 ),
@@ -236,10 +244,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                     height: 12,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: Colors.white.withValues(alpha: 0.8 + (0.2 * pulse)),
+                                      color: theme.textPrimary.withValues(alpha: 0.8 + (0.2 * pulse)),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.white.withValues(alpha: 0.3 * pulse),
+                                          color: theme.textPrimary.withValues(alpha: 0.3 * pulse),
                                           blurRadius: 20,
                                           spreadRadius: 5,
                                         ),
@@ -273,7 +281,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         child: Text(
                           "VOID",
                           style: GoogleFonts.ibmPlexMono(
-                            color: Colors.white,
+                            color: theme.textPrimary,
                             fontSize: 32,
                             fontWeight: FontWeight.w300,
                             letterSpacing: 16,
@@ -293,7 +301,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   child: Text(
                     "SPACE",
                     style: GoogleFonts.ibmPlexMono(
-                      color: Colors.white24,
+                      color: theme.textSecondary.withValues(alpha: 0.5),
                       fontSize: 11,
                       fontWeight: FontWeight.w400,
                       letterSpacing: 8,
@@ -314,7 +322,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         width: 160,
                         height: 2,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.08),
+                          color: theme.textPrimary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(1),
                         ),
                         child: Align(
@@ -324,11 +332,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                             width: 160 * _lineProgress,
                             height: 2,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.6),
+                              color: theme.textPrimary.withValues(alpha: 0.6),
                               borderRadius: BorderRadius.circular(1),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.white.withValues(alpha: 0.3),
+                                  color: theme.textPrimary.withValues(alpha: 0.3),
                                   blurRadius: 8,
                                 ),
                               ],
@@ -348,7 +356,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                           style: GoogleFonts.ibmPlexMono(
                             color: _statusText.contains("FAILED") 
                                 ? Colors.redAccent.withValues(alpha: 0.7)
-                                : Colors.white30,
+                                : theme.textPrimary.withValues(alpha: 0.3),
                             fontSize: 9,
                             letterSpacing: 3,
                           ),
@@ -368,13 +376,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                          color: Colors.white.withValues(alpha: 0.03),
+                          border: Border.all(color: theme.textPrimary.withValues(alpha: 0.15)),
+                          color: theme.textPrimary.withValues(alpha: 0.03),
                         ),
                         child: Text(
                           "RETRY",
                           style: GoogleFonts.ibmPlexMono(
-                            color: Colors.white54,
+                            color: theme.textSecondary,
                             fontSize: 11,
                             letterSpacing: 4,
                             fontWeight: FontWeight.w500,
@@ -395,8 +403,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 // Rotating ring painter
 class _RingPainter extends CustomPainter {
   final double progress;
+  final Color color;
   
-  _RingPainter({required this.progress});
+  _RingPainter({required this.progress, required this.color});
   
   @override
   void paint(Canvas canvas, Size size) {
@@ -405,14 +414,14 @@ class _RingPainter extends CustomPainter {
     
     // Background ring
     final bgPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
+      ..color = color.withValues(alpha: 0.05)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawCircle(center, radius, bgPaint);
     
     // Accent dots
     final dotPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill;
     
     for (int i = 0; i < 4; i++) {
@@ -425,7 +434,7 @@ class _RingPainter extends CustomPainter {
     // Progress arc
     if (progress > 0) {
       final progressPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.6)
+        ..color = color.withValues(alpha: 0.6)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
         ..strokeCap = StrokeCap.round;
@@ -449,8 +458,9 @@ class _RingPainter extends CustomPainter {
 class _GridPainter extends CustomPainter {
   final double rotation;
   final double opacity;
+  final Color color;
   
-  _GridPainter({required this.rotation, required this.opacity});
+  _GridPainter({required this.rotation, required this.opacity, required this.color});
   
   @override
   void paint(Canvas canvas, Size size) {
@@ -460,7 +470,7 @@ class _GridPainter extends CustomPainter {
     canvas.translate(-size.width / 2, -size.height / 2);
     
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: opacity)
+      ..color = color.withValues(alpha: opacity)
       ..strokeWidth = 0.5;
     
     const spacing = 60.0;

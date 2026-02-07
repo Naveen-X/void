@@ -92,17 +92,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   _buildMainContent(controller),
 
                   Positioned(
-                    bottom: 0, left: 0, right: 0, height: 240,
+                    bottom: 0, left: 0, right: 0, height: theme.brightness == Brightness.dark ? 240 : 180,
                     child: IgnorePointer(
                       child: Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter, end: Alignment.bottomCenter,
                             colors: [
-                              Colors.transparent,
-                              theme.bgPrimary.withValues(alpha: 0.8),
+                              theme.bgPrimary.withValues(alpha: 0.0),
+                              theme.bgPrimary.withValues(alpha: theme.brightness == Brightness.dark ? 0.8 : 0.2),
                               theme.bgPrimary,
                             ],
+                            stops: const [0.0, 0.5, 1.0],
                           ),
                         ),
                       ),
@@ -172,13 +173,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search_off_rounded, size: 48, color: Colors.white10),
+            Icon(Icons.search_off_rounded, size: 48, color: theme.textMuted),
             const SizedBox(height: 16),
             Text(
               _searchCtrl.text.isNotEmpty 
                 ? "NO MATCHES FOR '${_searchCtrl.text}'"
                 : "NO ITEMS WITH SELECTED TAGS",
-              style: GoogleFonts.ibmPlexMono(color: Colors.white24, fontSize: 11, letterSpacing: 1),
+              style: GoogleFonts.ibmPlexMono(color: theme.textTertiary, fontSize: 11, letterSpacing: 1),
             ),
             if (controller.selectedTags.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -188,11 +189,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white10),
+                    border: Border.all(color: theme.borderSubtle),
                   ),
                   child: Text(
                     "CLEAR FILTERS",
-                    style: GoogleFonts.ibmPlexMono(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.ibmPlexMono(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -208,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     
     return RefreshIndicator(
       onRefresh: controller.refresh,
-      color: Colors.white,
+      color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
       backgroundColor: theme.bgCard,
       strokeWidth: 2,
       child: CustomScrollView(
@@ -262,10 +263,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       width: 2,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.8),
+                        color: theme.textMuted,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withValues(alpha: 0.3),
+                            color: theme.textPrimary.withValues(alpha: 0.1),
                             blurRadius: 12,
                             spreadRadius: 1,
                           )
@@ -277,12 +278,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       "VOID SPACE",
                       style: GoogleFonts.ibmPlexMono(
                         fontSize: 11,
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: theme.textSecondary,
                         letterSpacing: 6.0,
                         fontWeight: FontWeight.w600,
                         shadows: [
                           Shadow(
-                            color: Colors.cyanAccent.withValues(alpha: 0.3),
+                            color: Colors.cyanAccent.withValues(alpha: theme.brightness == Brightness.dark ? 0.3 : 0.1),
                             blurRadius: 8,
                           ),
                         ],

@@ -235,7 +235,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         decoration: BoxDecoration(
           color: theme.textPrimary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(color: theme.borderSubtle),
         ),
         child: Row(
           children: [
@@ -244,7 +244,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             Text(
               label,
               style: GoogleFonts.ibmPlexSans(
-                color: Colors.white,
+                color: theme.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -307,6 +307,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final theme = VoidTheme.of(context);
         setState(() => _isGeneratingAI = false);
         HapticService.heavy();
         
@@ -314,7 +315,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           SnackBar(
             content: Text(
               'AI Generation Failed: ${e.toString()}',
-              style: GoogleFonts.ibmPlexMono(color: Colors.white),
+              style: GoogleFonts.ibmPlexMono(color: theme.textPrimary),
             ),
             backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
           ),
@@ -362,7 +363,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         Text(
                           _editedItem.title,
                           style: GoogleFonts.ibmPlexSans(
-                            color: Colors.white,
+                            color: theme.textPrimary,
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
                             height: 1.2,
@@ -453,7 +454,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               color: theme.bgCard.withValues(alpha: 0.3),
                               border: Border.all(color: theme.textPrimary.withValues(alpha: 0.1)),
                             ),
-                            child: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Colors.white),
+                            child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: theme.textPrimary),
                           ),
                         ),
                       ),
@@ -472,15 +473,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               shape: BoxShape.circle,
                               color: _isEditMode 
                                   ? Colors.greenAccent.withValues(alpha: 0.2)
-                                  : Colors.black.withValues(alpha: 0.3),
+                                  : theme.textPrimary.withValues(alpha: 0.05),
                               border: Border.all(
-                                color: _isEditMode ? Colors.greenAccent : Colors.white.withValues(alpha: 0.1)
+                                color: _isEditMode ? Colors.greenAccent : theme.textPrimary.withValues(alpha: 0.1)
                               ),
                             ),
                             child: Icon(
                               _isEditMode ? Icons.check_rounded : Icons.edit_rounded,
                               size: 20,
-                              color: _isEditMode ? Colors.greenAccent : Colors.white,
+                              color: _isEditMode ? Colors.greenAccent : theme.textPrimary,
                             ),
                           ),
                         ),
@@ -517,7 +518,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             : CachedNetworkImage(
                 imageUrl: _editedItem.imageUrl!,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(color: Colors.white.withValues(alpha: 0.05)),
+                placeholder: (context, url) => Container(color: theme.textPrimary.withValues(alpha: 0.05)),
                 errorWidget: (context, url, error) => Center(
                   child: Icon(Icons.image_not_supported_rounded, color: theme.textPrimary.withValues(alpha: 0.24), size: 40),
                 ),
@@ -561,7 +562,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           decoration: BoxDecoration(
             color: theme.textPrimary.withValues(alpha: 0.02),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            border: Border.all(color: theme.borderSubtle),
           ),
           child: Text(
             _editedItem.content,

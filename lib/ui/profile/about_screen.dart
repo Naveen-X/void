@@ -35,7 +35,7 @@ class AboutScreen extends StatelessWidget {
               },
               blendMode: BlendMode.dstIn,
               child: CustomPaint(
-                painter: BentoBackgroundPainter(),
+                painter: BentoBackgroundPainter(color: theme.textPrimary),
               ),
             ),
           ),
@@ -117,17 +117,17 @@ class AboutScreen extends StatelessWidget {
             height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF1A1A1A),
+              color: theme.bgCard,
               border: Border.all(
-                  color: Colors.cyanAccent.withValues(alpha: 0.3), width: 2),
+                  color: (theme.brightness == Brightness.dark ? Colors.cyanAccent : Colors.cyan).withValues(alpha: theme.brightness == Brightness.dark ? 0.3 : 0.4), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.cyanAccent.withValues(alpha: 0.1),
+                  color: Colors.cyanAccent.withValues(alpha: theme.brightness == Brightness.dark ? 0.1 : 0.05),
                   blurRadius: 30,
                   spreadRadius: 5,
                 ),
                 BoxShadow(
-                  color: Colors.purpleAccent.withValues(alpha: 0.05),
+                  color: Colors.purpleAccent.withValues(alpha: theme.brightness == Brightness.dark ? 0.05 : 0.02),
                   blurRadius: 50,
                   spreadRadius: 10,
                 ),
@@ -159,7 +159,7 @@ class AboutScreen extends StatelessWidget {
             "A DEVELOPER",
             style: GoogleFonts.ibmPlexMono(
               fontSize: 11,
-              color: Colors.cyanAccent,
+              color: theme.brightness == Brightness.dark ? Colors.cyanAccent : Colors.cyan[700],
               letterSpacing: 2,
             ),
           ),
@@ -210,7 +210,7 @@ class AboutScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Icon(Icons.link_rounded, size: 14, color: theme.textPrimary.withValues(alpha: 0.24)),
+              Icon(Icons.link_rounded, size: 14, color: theme.textPrimary.withValues(alpha: 0.5)),
             ],
           ),
           const SizedBox(height: 16),
@@ -297,10 +297,10 @@ class AboutScreen extends StatelessWidget {
               color: Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               border:
-                  Border.all(color: Colors.cyanAccent.withValues(alpha: 0.2)),
+                  Border.all(color: (theme.brightness == Brightness.dark ? Colors.cyanAccent : Colors.cyan).withValues(alpha: 0.2)),
             ),
-            child: const Icon(Icons.rocket_launch_rounded,
-                color: Colors.cyanAccent, size: 20),
+            child: Icon(Icons.rocket_launch_rounded,
+                color: theme.brightness == Brightness.dark ? Colors.cyanAccent : Colors.cyan, size: 20),
           ),
           const Spacer(),
           Text(
@@ -318,7 +318,7 @@ class AboutScreen extends StatelessWidget {
                 "v1.0.4",
                 style: GoogleFonts.ibmPlexMono(
                   fontSize: 11,
-                  color: Colors.white70,
+                  color: theme.textSecondary,
                 ),
               ),
               const SizedBox(width: 8),

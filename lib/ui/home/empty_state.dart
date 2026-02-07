@@ -141,7 +141,7 @@ class _VoidEmptyStateState extends State<VoidEmptyState> with TickerProviderStat
                   "Add a fragment to disturb the peace.",
                   style: GoogleFonts.ibmPlexSans(
                     fontSize: 14,
-                    color: theme.textTertiary,
+                    color: theme.textSecondary,
                     letterSpacing: 0.5,
                   ),
                 ),

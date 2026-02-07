@@ -8,6 +8,7 @@ import '../../services/link_metadata_service.dart';
 import '../../services/haptic_service.dart';
 import '../../services/ai_service.dart';
 import 'package:void_space/services/groq_service.dart';
+import '../../ui/theme/void_theme.dart';
 
 class ManualEntryOverlay extends StatefulWidget {
   final VoidCallback onSave;
@@ -138,8 +139,10 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    final theme = VoidTheme.of(context);
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final isFocused = _focusNode.hasFocus;
+    final isDark = theme.brightness == Brightness.dark;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -148,17 +151,17 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
       child: Container(
         margin: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF0D0D0D),
+          color: theme.bgCard,
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
             color: isFocused 
-              ? Colors.white.withValues(alpha: 0.15)
-              : Colors.white.withValues(alpha: 0.08),
+              ? theme.textPrimary.withValues(alpha: 0.15)
+              : theme.borderSubtle,
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
+              color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.08),
               blurRadius: 30,
               offset: const Offset(0, 10),
             ),
@@ -173,7 +176,7 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: theme.textPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -216,7 +219,7 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                         style: GoogleFonts.ibmPlexMono(
                           color: _isProcessing 
                             ? Colors.orangeAccent 
-                            : Colors.white30,
+                            : theme.textSecondary.withValues(alpha: 0.5),
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 2,
@@ -260,12 +263,12 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: isFocused ? 0.04 : 0.02),
+                      color: theme.textPrimary.withValues(alpha: isFocused ? 0.04 : 0.02),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
                         color: isFocused 
-                          ? (_isLink ? Colors.blueAccent : Colors.white).withValues(alpha: 0.15)
-                          : Colors.white.withValues(alpha: 0.05),
+                          ? (_isLink ? Colors.blueAccent : theme.textPrimary).withValues(alpha: 0.15)
+                          : theme.textPrimary.withValues(alpha: 0.05),
                       ),
                     ),
                     child: TextField(
@@ -276,15 +279,15 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                       minLines: 1,
                       enabled: !_isProcessing,
                       style: GoogleFonts.ibmPlexMono(
-                        color: Colors.white,
+                        color: theme.textPrimary,
                         fontSize: 16,
                         height: 1.5,
                       ),
-                      cursorColor: _isLink ? Colors.blueAccent : Colors.white,
+                      cursorColor: _isLink ? Colors.blueAccent : theme.textPrimary,
                       decoration: InputDecoration(
                         hintText: "Paste a link or type a note...",
                         hintStyle: GoogleFonts.ibmPlexMono(
-                          color: Colors.white.withValues(alpha: 0.15),
+                          color: theme.textPrimary.withValues(alpha: 0.15),
                           fontSize: 16,
                         ),
                         border: InputBorder.none,
@@ -307,7 +310,7 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                           child: Text(
                             '${_controller.text.length} chars',
                             style: GoogleFonts.ibmPlexMono(
-                              color: Colors.white12,
+                              color: theme.textSecondary.withValues(alpha: 0.3),
                               fontSize: 10,
                             ),
                           ),
@@ -325,12 +328,12 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                           height: 48,
                           decoration: BoxDecoration(
                             color: _hasContent 
-                              ? (_isLink ? Colors.blueAccent : Colors.white)
-                              : Colors.white.withValues(alpha: 0.05),
+                              ? (_isLink ? Colors.blueAccent : theme.textPrimary)
+                              : theme.textPrimary.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(_hasContent ? 24 : 24),
                             boxShadow: _hasContent ? [
                               BoxShadow(
-                                color: (_isLink ? Colors.blueAccent : Colors.white).withValues(alpha: 0.2),
+                                color: (_isLink ? Colors.blueAccent : theme.textPrimary).withValues(alpha: 0.2),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -343,7 +346,7 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.white,
+                                    color: theme.bgCard,
                                   ),
                                 ),
                               )
@@ -354,15 +357,15 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                                     _hasContent ? Icons.add_rounded : Icons.add_rounded,
                                     size: 20,
                                     color: _hasContent 
-                                      ? (_isLink ? Colors.white : Colors.black)
-                                      : Colors.white24,
+                                      ? (_isLink ? Colors.white : theme.bgCard)
+                                      : theme.textPrimary.withValues(alpha: 0.24),
                                   ),
                                   if (_hasContent) ...[
                                     const SizedBox(width: 6),
                                     Text(
                                       'Save',
                                       style: GoogleFonts.ibmPlexMono(
-                                        color: _isLink ? Colors.white : Colors.black,
+                                        color: _isLink ? Colors.white : theme.bgCard,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),

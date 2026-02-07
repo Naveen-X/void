@@ -90,9 +90,9 @@ class VoidHeader extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: theme.textPrimary.withValues(alpha: 0.1),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                            border: Border.all(color: theme.textPrimary.withValues(alpha: 0.1)),
                           ),
-                          child: const Icon(Icons.person, size: 18, color: Colors.white54),
+                          child: Icon(Icons.person, size: 18, color: theme.textSecondary),
                         ),
                       ),
                     ),
@@ -133,12 +133,12 @@ class VoidHeader extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: isAllSelected 
-                    ? Colors.white.withValues(alpha: 0.15)
-                    : Colors.white.withValues(alpha: 0.05),
+                    ? theme.textPrimary.withValues(alpha: 0.15)
+                    : theme.textPrimary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(VoidDesign.radiusMD),
                   border: Border.all(
                     color: isAllSelected 
-                      ? Colors.white.withValues(alpha: 0.3)
+                      ? theme.textPrimary.withValues(alpha: 0.3)
                       : theme.borderSubtle,
                   ),
                 ),
@@ -170,12 +170,12 @@ class VoidHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected 
                   ? tagColor.withValues(alpha: 0.15)
-                  : Colors.white.withValues(alpha: 0.05),
+                  : theme.textPrimary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isSelected 
                     ? tagColor.withValues(alpha: 0.4)
-                    : Colors.white.withValues(alpha: 0.08),
+                    : theme.textPrimary.withValues(alpha: 0.08),
                 ),
               ),
               child: Row(

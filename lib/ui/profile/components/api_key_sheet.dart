@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../services/groq_service.dart';
 import '../../../services/haptic_service.dart';
+import '../../theme/void_theme.dart';
 
 /// Bottom sheet content for configuring the Groq API key
 class ApiKeySheetContent extends StatefulWidget {
@@ -27,15 +28,17 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
+    final theme = VoidTheme.of(context);
+
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF111111).withValues(alpha: 0.9),
+            color: theme.bgCard.withValues(alpha: 0.9),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            border: Border.all(color: theme.borderSubtle),
           ),
           child: SingleChildScrollView(
             child: Padding(
@@ -51,20 +54,20 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
                       height: 4,
                       margin: const EdgeInsets.only(bottom: 24),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: theme.textPrimary.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
 
-                  _buildHeader(),
+                  _buildHeader(theme),
                   const SizedBox(height: 20),
-                  _buildDescription(),
+                  _buildDescription(theme),
                   const SizedBox(height: 24),
-                  _buildInputField(),
+                  _buildInputField(theme),
                   if (_errorMessage != null) _buildErrorBanner(),
                   const SizedBox(height: 24),
-                  _buildActionButtons(),
+                  _buildActionButtons(theme),
                   const SizedBox(height: 12),
                 ],
               ),
@@ -75,7 +78,7 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(VoidTheme theme) {
     return Row(
       children: [
         Container(
@@ -94,21 +97,21 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
             fontSize: 13,
             letterSpacing: 2,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: theme.textPrimary,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDescription() {
+  Widget _buildDescription(VoidTheme theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Configure the neural engine.',
           style: GoogleFonts.ibmPlexSans(
-            color: Colors.white,
+            color: theme.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -117,7 +120,7 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
         Text(
           'Enter your Groq Cloud API key to enable "Human Curator" mode for auto-tagging and detailed aesthetics.',
           style: GoogleFonts.ibmPlexSans(
-            color: Colors.white54,
+            color: theme.textSecondary,
             fontSize: 13,
             height: 1.4,
           ),
@@ -126,21 +129,21 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
     );
   }
 
-  Widget _buildInputField() {
+  Widget _buildInputField(VoidTheme theme) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: theme.textPrimary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: _errorMessage != null
               ? Colors.redAccent.withValues(alpha: 0.4)
-              : Colors.white.withValues(alpha: 0.1),
+              : theme.borderSubtle,
         ),
       ),
       child: TextField(
         controller: widget.controller,
         obscureText: _obscureText,
-        style: GoogleFonts.ibmPlexMono(color: Colors.white, fontSize: 13),
+        style: GoogleFonts.ibmPlexMono(color: theme.textPrimary, fontSize: 13),
         onChanged: (_) {
           if (_errorMessage != null) {
             setState(() => _errorMessage = null);
@@ -149,17 +152,17 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
         decoration: InputDecoration(
           hintText: 'gsk_8h9s...',
           hintStyle:
-              GoogleFonts.ibmPlexMono(color: Colors.white24, fontSize: 13),
+              GoogleFonts.ibmPlexMono(color: theme.textMuted, fontSize: 13),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(16),
           prefixIcon:
-              Icon(Icons.password_rounded, size: 18, color: Colors.white30),
+              Icon(Icons.password_rounded, size: 18, color: theme.textTertiary),
           suffixIcon: IconButton(
             icon: Icon(
               _obscureText
                   ? Icons.visibility_outlined
                   : Icons.visibility_off_outlined,
-              color: Colors.white30,
+              color: theme.textTertiary,
               size: 18,
             ),
             onPressed: () {
@@ -203,23 +206,23 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(VoidTheme theme) {
     return Row(
       children: [
         Expanded(
           flex: 3,
-          child: _buildGetKeyButton(),
+          child: _buildGetKeyButton(theme),
         ),
         const SizedBox(width: 12),
         Expanded(
           flex: 4,
-          child: _buildConnectButton(),
+          child: _buildConnectButton(theme),
         ),
       ],
     );
   }
 
-  Widget _buildGetKeyButton() {
+  Widget _buildGetKeyButton(VoidTheme theme) {
     return GestureDetector(
       onTap: () async {
         final Uri url = Uri.parse('https://console.groq.com/keys');
@@ -230,9 +233,9 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: theme.textPrimary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(color: theme.borderSubtle),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -240,31 +243,31 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
             Text(
               'GET KEY',
               style: GoogleFonts.ibmPlexMono(
-                color: Colors.white70,
+                color: theme.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1,
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.open_in_new_rounded, size: 12, color: Colors.white54),
+            Icon(Icons.open_in_new_rounded, size: 12, color: theme.textTertiary),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildConnectButton() {
+  Widget _buildConnectButton(VoidTheme theme) {
     return GestureDetector(
-      onTap: _isValidating ? null : _handleConnect,
+      onTap: _isValidating ? null : () => _handleConnect(theme),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.textPrimary,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-                color: Colors.white.withValues(alpha: 0.15),
+                color: theme.textPrimary.withValues(alpha: 0.15),
                 blurRadius: 10,
                 spreadRadius: 0),
           ],
@@ -276,13 +279,13 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
                   height: 14,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.black,
+                    color: theme.bgCard,
                   ),
                 )
               : Text(
                   'CONNECT',
                   style: GoogleFonts.ibmPlexMono(
-                    color: Colors.black,
+                    color: theme.bgCard,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1,
@@ -293,7 +296,7 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
     );
   }
 
-  Future<void> _handleConnect() async {
+  Future<void> _handleConnect(VoidTheme theme) async {
     final key = widget.controller.text.trim();
 
     // Handle Disconnect
@@ -306,7 +309,7 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
           SnackBar(
             content: Row(
               children: [
-                Icon(Icons.link_off_rounded, color: Colors.white54, size: 18),
+                Icon(Icons.link_off_rounded, color: theme.textSecondary, size: 18),
                 const SizedBox(width: 12),
                 Text(
                   'AI CORE OFFLINE',
@@ -314,15 +317,15 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
                       fontSize: 12,
                       letterSpacing: 1.5,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white),
+                      color: theme.textPrimary),
                 ),
               ],
             ),
-            backgroundColor: const Color(0xFF1A1A1A),
+            backgroundColor: theme.bgCard,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+              side: BorderSide(color: theme.borderSubtle),
             ),
             margin: const EdgeInsets.all(16),
           ),
@@ -364,11 +367,11 @@ class _ApiKeySheetContentState extends State<ApiKeySheetContent> {
                         fontSize: 12,
                         letterSpacing: 1.5,
                         fontWeight: FontWeight.w500,
-                        color: Colors.white),
+                        color: theme.textPrimary),
                   ),
                 ],
               ),
-              backgroundColor: const Color(0xFF0D1A0D),
+              backgroundColor: theme.brightness == Brightness.dark ? const Color(0xFF0D1A0D) : const Color(0xFFE8F5E9),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

@@ -15,13 +15,14 @@ class DataLine {
 /// Paints animated data stream lines in the background
 class DataStreamPainter extends CustomPainter {
   final double progress;
+  final Color color;
   final List<DataLine> _lines = List.generate(25, (index) => DataLine());
 
-  DataStreamPainter(this.progress);
+  DataStreamPainter(this.progress, {this.color = Colors.white});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.02);
+    final paint = Paint()..color = color.withValues(alpha: 0.02);
 
     for (var line in _lines) {
       double currentY =
@@ -79,10 +80,13 @@ class TechRingPainter extends CustomPainter {
 
 /// Paints a bento grid-style background pattern
 class BentoBackgroundPainter extends CustomPainter {
+  final Color color;
+  BentoBackgroundPainter({this.color = Colors.white});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.03)
+      ..color = color.withValues(alpha: 0.03)
       ..style = PaintingStyle.stroke;
 
     const gridSize = 30.0;
@@ -96,4 +100,70 @@ class BentoBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Paints subtle animated circuit-like lines for cards
+class CardDataPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+
+  CardDataPainter(this.progress, {this.color = Colors.white});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+
+    final accentPaint = Paint()
+      ..color = color.withValues(alpha: 0.1)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final path = Path();
+    // Top-left bracket
+    path.moveTo(10, 0);
+    path.lineTo(0, 0);
+    path.lineTo(0, 10);
+    
+    // Top-right bracket
+    path.moveTo(size.width - 10, 0);
+    path.lineTo(size.width, 0);
+    path.lineTo(size.width, 10);
+    
+    // Bottom-left bracket
+    path.moveTo(0, size.height - 10);
+    path.lineTo(0, size.height);
+    path.lineTo(10, size.height);
+    
+    // Bottom-right bracket
+    path.moveTo(size.width - 10, size.height);
+    path.lineTo(size.width, size.height);
+    path.lineTo(size.width, size.height - 10);
+
+    canvas.drawPath(path, accentPaint);
+
+    // Subtle internal grid lines
+    final gridPath = Path();
+    gridPath.moveTo(size.width * 0.2, 0);
+    gridPath.lineTo(size.width * 0.2, size.height);
+    gridPath.moveTo(size.width * 0.8, 0);
+    gridPath.lineTo(size.width * 0.8, size.height);
+    
+    canvas.drawPath(gridPath, paint..color = color.withValues(alpha: 0.02));
+
+    // Animated diagonal scanning line
+    final scanY = (progress * size.height * 2) - size.height;
+    if (scanY > 0 && scanY < size.height) {
+      canvas.drawLine(
+        Offset(0, scanY),
+        Offset(size.width, scanY),
+        Paint()..color = color.withValues(alpha: 0.03 * (1.0 - (scanY / size.height).abs())),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CardDataPainter oldDelegate) => true;
 }

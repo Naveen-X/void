@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../theme/void_theme.dart';
 
 /// A progress bar widget for displaying tech stack items
 class StackItem extends StatelessWidget {
@@ -21,13 +22,14 @@ class StackItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = VoidTheme.of(context);
     if (isCompact) {
-      return _buildCompactLayout();
+      return _buildCompactLayout(theme);
     }
-    return _buildStandardLayout();
+    return _buildStandardLayout(theme);
   }
 
-  Widget _buildCompactLayout() {
+  Widget _buildCompactLayout(VoidTheme theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -38,7 +40,7 @@ class StackItem extends StatelessWidget {
               label,
               style: GoogleFonts.ibmPlexMono(
                 fontSize: 11,
-                color: Colors.white70,
+                color: theme.textSecondary,
               ),
             ),
             if (version != null)
@@ -46,7 +48,7 @@ class StackItem extends StatelessWidget {
                 version!,
                 style: GoogleFonts.ibmPlexMono(
                   fontSize: 10,
-                  color: Colors.cyanAccent.withValues(alpha: 0.8),
+                  color: (theme.brightness == Brightness.dark ? Colors.cyanAccent : Colors.cyan[700])?.withValues(alpha: 0.8),
                 ),
               ),
           ],
@@ -55,7 +57,7 @@ class StackItem extends StatelessWidget {
         Container(
           height: 4,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: theme.textPrimary.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(2),
           ),
           child: FractionallySizedBox(
@@ -63,7 +65,7 @@ class StackItem extends StatelessWidget {
             widthFactor: progress,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.textPrimary,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -73,7 +75,7 @@ class StackItem extends StatelessWidget {
     );
   }
 
-  Widget _buildStandardLayout() {
+  Widget _buildStandardLayout(VoidTheme theme) {
     return Row(
       children: [
         SizedBox(
@@ -82,7 +84,7 @@ class StackItem extends StatelessWidget {
             label,
             style: GoogleFonts.ibmPlexMono(
               fontSize: 13,
-              color: Colors.white70,
+              color: theme.textSecondary,
             ),
           ),
         ),
@@ -90,7 +92,7 @@ class StackItem extends StatelessWidget {
           child: Container(
             height: 6,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: theme.textPrimary.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(3),
             ),
             child: FractionallySizedBox(
@@ -98,11 +100,11 @@ class StackItem extends StatelessWidget {
               widthFactor: progress,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.textPrimary,
                   borderRadius: BorderRadius.circular(3),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: theme.textPrimary.withValues(alpha: 0.2),
                       blurRadius: 6,
                     ),
                   ],
