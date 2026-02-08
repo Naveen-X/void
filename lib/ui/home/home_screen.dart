@@ -208,10 +208,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final headerHeight = statusBarHeight + 56 + (controller.availableTags.isNotEmpty ? 52 : 0);
     
     return RefreshIndicator(
-      onRefresh: controller.refresh,
-      color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
-      backgroundColor: theme.bgCard,
-      strokeWidth: 2,
+      onRefresh: () async {
+        HapticService.light();
+        await controller.refresh();
+        HapticService.success();
+      },
+      color: const Color(0xFF00F2AD),
+      backgroundColor: theme.bgCard.withValues(alpha: 0.95),
+      strokeWidth: 2.5,
+      displacement: 20,
+      edgeOffset: headerHeight,
       child: CustomScrollView(
         controller: _scrollCtrl,
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),

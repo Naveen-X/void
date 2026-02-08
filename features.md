@@ -147,8 +147,8 @@ A comprehensive list of functionality improvements for the app.
 - [ ] Quick tutorial overlay
 
 ### 25. Pull-to-Refresh Animation
-- [ ] Enhanced refresh animation for home screen
-- [ ] Branded loading indicator
+- [x] Enhanced refresh animation for home screen
+- [x] Branded loading indicator
 
 ### 26. Haptic Feedback Polish
 - [ ] Consistent haptics across all interactions
