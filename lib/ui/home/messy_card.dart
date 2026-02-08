@@ -141,16 +141,19 @@ class _MessyCardState extends State<MessyCard> with TickerProviderStateMixin {
         fadeInDuration: const Duration(milliseconds: 300),
         maxWidthDiskCache: 1000,
         maxHeightDiskCache: 2000,
-        placeholder: (context, url) => Shimmer.fromColors(
-          baseColor: theme.brightness == Brightness.dark 
-              ? theme.textPrimary.withValues(alpha: 0.05)
-              : theme.textPrimary.withValues(alpha: 0.08),
-          highlightColor: theme.brightness == Brightness.dark
-              ? theme.textPrimary.withValues(alpha: 0.1)
-              : theme.textPrimary.withValues(alpha: 0.03),
-          child: Container(
-            height: widget.item.type == 'link' ? null : 280,
-            color: theme.bgCard,
+        placeholder: (context, url) => ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 120),
+          child: Shimmer.fromColors(
+            baseColor: theme.brightness == Brightness.dark 
+                ? theme.textPrimary.withValues(alpha: 0.05)
+                : theme.textPrimary.withValues(alpha: 0.08),
+            highlightColor: theme.brightness == Brightness.dark
+                ? theme.textPrimary.withValues(alpha: 0.1)
+                : theme.textPrimary.withValues(alpha: 0.03),
+            child: Container(
+              height: 120,
+              color: theme.bgCard,
+            ),
           ),
         ),
         errorWidget: (context, url, error) => _buildFileTypePreview(widget.item.type),

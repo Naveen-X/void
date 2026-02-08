@@ -501,11 +501,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final theme = VoidTheme.of(context);
     if (_editedItem.imageUrl != null && _editedItem.imageUrl!.isNotEmpty) {
       return Container(
-        height: 250,
+        constraints: const BoxConstraints(maxHeight: 400),
         width: double.infinity,
         margin: EdgeInsets.only(
           bottom: 24,
-          top: MediaQuery.of(context).padding.top + 54, // Increased clearance
+          top: MediaQuery.of(context).padding.top + 54,
         ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
@@ -514,10 +514,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         ),
         clipBehavior: Clip.antiAlias,
         child: isLocalPath(_editedItem.imageUrl!)
-            ? Image.file(File(_editedItem.imageUrl!), fit: BoxFit.cover)
+            ? Image.file(File(_editedItem.imageUrl!), fit: BoxFit.contain)
             : CachedNetworkImage(
                 imageUrl: _editedItem.imageUrl!,
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 placeholder: (context, url) => Container(color: theme.textPrimary.withValues(alpha: 0.05)),
                 errorWidget: (context, url, error) => Center(
                   child: Icon(Icons.image_not_supported_rounded, color: theme.textPrimary.withValues(alpha: 0.24), size: 40),
