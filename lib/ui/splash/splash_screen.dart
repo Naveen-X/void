@@ -3,8 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/security_service.dart';
-
-import '../../services/groq_service.dart';
 import '../../data/stores/void_store.dart';
 import '../home/home_screen.dart';
 import '../theme/void_theme.dart';
@@ -74,9 +72,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     
     // Initialize and animate progress
     try {
-      // Initialize database and AI service
+      // Initialize database
       await VoidStore.init();
-      await GroqService.init();
       
       for (int i = 0; i <= 90; i += 10) {
         if (!mounted) return;

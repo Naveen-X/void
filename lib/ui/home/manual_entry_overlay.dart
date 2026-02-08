@@ -7,7 +7,6 @@ import '../../data/stores/void_store.dart';
 import '../../services/link_metadata_service.dart';
 import '../../services/haptic_service.dart';
 import '../../services/ai_service.dart';
-import 'package:void_space/services/groq_service.dart';
 import '../../ui/theme/void_theme.dart';
 
 class ManualEntryOverlay extends StatefulWidget {
@@ -69,7 +68,7 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
     HapticService.medium();
 
     try {
-      await GroqService.init(); // Ensure AI service is ready
+      // CloudflareAI doesn't need initialization
       VoidItem item;
       if (_isLink) {
         String url = text;
@@ -350,28 +349,21 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
                                   ),
                                 ),
                               )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    _hasContent ? Icons.add_rounded : Icons.add_rounded,
-                                    size: 20,
-                                    color: _hasContent 
-                                      ? (_isLink ? Colors.white : theme.bgCard)
-                                      : theme.textPrimary.withValues(alpha: 0.24),
-                                  ),
-                                  if (_hasContent) ...[
-                                    const SizedBox(width: 6),
-                                    Text(
+                            : Center(
+                                child: _hasContent
+                                  ? Text(
                                       'Save',
                                       style: GoogleFonts.ibmPlexMono(
                                         color: _isLink ? Colors.white : theme.bgCard,
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.bold,
                                       ),
+                                    )
+                                  : Icon(
+                                      Icons.add_rounded,
+                                      size: 20,
+                                      color: theme.textPrimary.withValues(alpha: 0.24),
                                     ),
-                                  ],
-                                ],
                               ),
                         ),
                       ),

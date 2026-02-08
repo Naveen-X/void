@@ -10,7 +10,7 @@ import 'package:void_space/services/link_metadata_service.dart';
 import 'package:void_space/services/share_bridge.dart';
 import 'package:void_space/services/haptic_service.dart';
 import 'package:void_space/services/ai_service.dart';
-import 'package:void_space/services/groq_service.dart';
+import 'package:void_space/services/cloudflare_ai_service.dart';
 import 'orb_loader.dart';
 
 class ShareLoaderScreen extends StatefulWidget {
@@ -37,20 +37,8 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
       // Initialize Hive
       await VoidStore.init();
       
-      // CRITICAL: Ensure AI Service is ready
-      // The Share intent runs in a separate FlutterActivty/Isolate context on Android sometimes,
-      // so static variables from the main app might not be present. We MUST reload the key.
-      if (!GroqService.isConfigured) {
-         developer.log('ShareLoaderScreen: GroqService not configured. Initializing...', name: 'ShareLoader');
-         await GroqService.init();
-      }
-      
-      // Verification
-      if (GroqService.isConfigured) {
-        developer.log('ShareLoaderScreen: GroqService READY. Key present.', name: 'ShareLoader');
-      } else {
-        developer.log('ShareLoaderScreen: WARNING: GroqService failed to load key. AI will be disabled.', name: 'ShareLoader');
-      }
+      // CloudflareAI doesn't need initialization - just process
+      developer.log('ShareLoaderScreen: AI Service ready (Cloudflare Workers)', name: 'ShareLoader');
       
       await _processShare();
     } catch (e) {
@@ -203,33 +191,67 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
       // Get file info for metadata
       final fileSize = await persistentFile.length();
       final sizeMB = (fileSize / 1024 / 1024).toStringAsFixed(2);
-
-      // Create VoidItem with file info
-      final item = VoidItem(
+      
+      // Create VoidItem with basic info
+      var item = VoidItem(
         id: timestamp.toString(),
         type: itemType,
-        content: persistentFile.path,
+        content: '${itemType.toUpperCase()} • ${sizeMB}MB',
         title: filename,
         summary: '${itemType.toUpperCase()} • ${sizeMB}MB',
+        tldr: null,
         imageUrl: itemType == 'image' ? persistentFile.path : null,
         createdAt: DateTime.now(),
         tags: [itemType, 'shared'],
         embedding: null,
       );
 
-      developer.log('ShareLoaderScreen: Saving item to store', name: 'ShareLoader');
+      // 1. Initial save with basic info
+      developer.log('ShareLoaderScreen: Initial save', name: 'ShareLoader');
       await VoidStore.add(item);
-      HapticService.success();
 
-      developer.log('ShareLoaderScreen: File share complete, showing success', name: 'ShareLoader');
+      // 2. Immediate success feedback
       if (mounted) {
         setState(() {
           _orbState = OrbState.success;
           _showToast = true;
         });
       }
+      HapticService.success();
 
-      await Future.delayed(const Duration(milliseconds: 2200));
+      // 3. Run AI analysis (capped for speed, but long enough for vision)
+      if (itemType == 'image') {
+        developer.log('ShareLoaderScreen: Starting background AI analysis...', name: 'ShareLoader');
+        
+        try {
+          // Provide a generous but sensible timeout for vision analysis
+          final aiResult = await CloudflareAIService.analyzeImage(persistentFile.path)
+              .timeout(const Duration(seconds: 8)); 
+          
+          if (aiResult != null && mounted) {
+            final finalItem = VoidItem(
+              id: item.id,
+              type: itemType,
+              content: aiResult.summary,
+              title: aiResult.title.isNotEmpty ? aiResult.title : filename,
+              summary: aiResult.summary,
+              tldr: aiResult.tldr,
+              imageUrl: persistentFile.path,
+              createdAt: DateTime.now(),
+              tags: aiResult.tags, // Service now includes shared/ai tags
+              embedding: null,
+            );
+            
+            developer.log('ShareLoaderScreen: Updating with AI metadata: ${finalItem.title}', name: 'ShareLoader');
+            await VoidStore.add(finalItem);
+          }
+        } catch (e) {
+          developer.log('ShareLoaderScreen: AI metadata failed or timed out: $e', name: 'ShareLoader');
+        }
+      }
+
+      // 4. Short delay to ensure success animation is seen
+      await Future.delayed(const Duration(milliseconds: 600));
       _close();
     } catch (e) {
       developer.log('ShareLoaderScreen: Error processing file: $e', name: 'ShareLoader');

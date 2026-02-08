@@ -425,12 +425,16 @@ class _MessyCardState extends State<MessyCard> with TickerProviderStateMixin {
                                         ),
                                       ),
                                       const SizedBox(width: 6),
-                                      Text(
-                                        Uri.parse(widget.item.content).host.replaceFirst('www.', '').toLowerCase(),
-                                        style: GoogleFonts.ibmPlexMono(
-                                          color: typeColor.withValues(alpha: 0.5),
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.w600,
+                                      Expanded(
+                                        child: Text(
+                                          Uri.parse(widget.item.content).host.replaceFirst('www.', '').toLowerCase(),
+                                          style: GoogleFonts.ibmPlexMono(
+                                            color: typeColor.withValues(alpha: 0.5),
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
                                         ),
                                       ),
                                     ],

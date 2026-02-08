@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/void_theme.dart';
 import 'package:void_space/data/models/void_item.dart';
-import 'package:void_space/services/groq_service.dart';
 
 class SummarySection extends StatelessWidget {
   final VoidItem item;
@@ -46,9 +45,9 @@ class SummarySection extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            if (GroqService.isConfigured)
-              GestureDetector(
-                onTap: onGenerate,
+            // AI regenerate button - always available with CloudflareAI
+            GestureDetector(
+              onTap: onGenerate,
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

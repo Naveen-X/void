@@ -289,11 +289,19 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     HapticService.medium();
 
     try {
-      final context = await AIService.analyze(_editedItem.title, _editedItem.content);
+      final context = await AIService.analyze(
+        _editedItem.title, 
+        _editedItem.content,
+        // Only pass image path if it's local
+        imagePath: isLocalPath(_editedItem.imageUrl ?? '') ? _editedItem.imageUrl : null,
+        url: _editedItem.type == 'link' ? _editedItem.content : null,
+      );
       
       final updatedItem = _editedItem.copyWith(
         summary: context.summary,
         tldr: context.tldr,
+        content: context.summary, // Update content to match new summary to solve redundancy glitch
+        tags: context.tags, // Refresh tags as well
       );
       
       await VoidStore.update(updatedItem);
@@ -335,23 +343,33 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
+              if (_editedItem.imageUrl != null && _editedItem.imageUrl!.isNotEmpty)
+                SliverAppBar(
+                  expandedHeight: 400,
+                  stretch: true,
+                  backgroundColor: Colors.transparent,
+                  automaticallyImplyLeading: false,
+                  flexibleSpace: FlexibleSpaceBar(
+                    stretchModes: const [
+                      StretchMode.zoomBackground,
+                    ],
+                    background: _buildHeaderImageContent(),
+                  ),
+                ),
+
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.only(
+                  padding: EdgeInsets.only(
                     left: 24, 
                     right: 24, 
                     bottom: 120,
+                    top: (_editedItem.imageUrl == null || _editedItem.imageUrl!.isEmpty) 
+                        ? MediaQuery.of(context).padding.top + 64 
+                        : 24,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header Image (if exists)
-                      _buildHeaderImage(),
-                      
-                      // Spacer if no image, to prevent text overlapping buttons
-                      if (_editedItem.imageUrl == null || _editedItem.imageUrl!.isEmpty)
-                         SizedBox(height: MediaQuery.of(context).padding.top + 64),
-
                       // Title Section
                       if (_isEditMode)
                         EditItemForm(
@@ -391,7 +409,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       if (_isEditMode && _isNoteType)
                          // Content handled in EditItemForm above
                          const SizedBox.shrink()
-                         
                       else if (_editedItem.type == 'link') ...[
                         LinkCard(item: _editedItem),
                         if ((_editedItem.summary?.isNotEmpty ?? false) || (_editedItem.tldr?.isNotEmpty ?? false)) ...[
@@ -403,7 +420,20 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           ),
                         ]
                       ] else ...[
-                         _buildContentSection(),
+                        // Show AI Summary if available (TLDR, etc.)
+                        if ((_editedItem.summary?.isNotEmpty ?? false) || (_editedItem.tldr?.isNotEmpty ?? false)) ...[
+                          SummarySection(
+                            item: _editedItem,
+                            isGenerating: _isGeneratingAI,
+                            onGenerate: _generateAIContext,
+                          ),
+                          const SizedBox(height: VoidDesign.spaceXL),
+                        ],
+
+                        // Only show raw content if it's not identical to the summary/tldr
+                        // (Usually for images, the 'content' field is just a duplicate of summary)
+                        if (_shouldShowContentSection())
+                           _buildContentSection(),
                       ],
 
                       if (isFileType(_editedItem.type)) ...[
@@ -497,27 +527,19 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
   }
 
-  Widget _buildHeaderImage() {
+  Widget _buildHeaderImageContent() {
     final theme = VoidTheme.of(context);
     if (_editedItem.imageUrl != null && _editedItem.imageUrl!.isNotEmpty) {
       return Container(
-        constraints: const BoxConstraints(maxHeight: 400),
-        width: double.infinity,
-        margin: EdgeInsets.only(
-          bottom: 24,
-          top: MediaQuery.of(context).padding.top + 54,
-        ),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: theme.textPrimary.withValues(alpha: 0.1)),
           color: theme.bgCard.withValues(alpha: 0.2),
         ),
         clipBehavior: Clip.antiAlias,
         child: isLocalPath(_editedItem.imageUrl!)
-            ? Image.file(File(_editedItem.imageUrl!), fit: BoxFit.contain)
+            ? Image.file(File(_editedItem.imageUrl!), fit: BoxFit.cover)
             : CachedNetworkImage(
                 imageUrl: _editedItem.imageUrl!,
-                fit: BoxFit.contain,
+                fit: BoxFit.cover,
                 placeholder: (context, url) => Container(color: theme.textPrimary.withValues(alpha: 0.05)),
                 errorWidget: (context, url, error) => Center(
                   child: Icon(Icons.image_not_supported_rounded, color: theme.textPrimary.withValues(alpha: 0.24), size: 40),
@@ -653,5 +675,18 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
       ],
     );
+  }
+
+  bool _shouldShowContentSection() {
+    if (_editedItem.type == 'note') return true;
+    if (_editedItem.content.isEmpty) return false;
+    
+    // For images/files, if content is same as summary or tldr, it's redundant
+    if (_editedItem.imageUrl != null) {
+      if (_editedItem.content == _editedItem.summary) return false;
+      if (_editedItem.content == _editedItem.tldr) return false;
+    }
+    
+    return true;
   }
 }

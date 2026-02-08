@@ -1,4 +1,4 @@
-import 'groq_service.dart';
+import 'cloudflare_ai_service.dart';
 
 /// Context returned by AI analysis
 class AIContext {
@@ -18,29 +18,32 @@ class AIContext {
 }
 
 /// Service for AI-powered analysis and tagging
+/// Uses Cloudflare Workers AI (Llama 3.2)
 class AIService {
   static Future<void> init() async {
-    await GroqService.init();
+    // No initialization needed for Cloudflare AI
   }
 
-  /// Analyze content and generate tags + summary. Optional [url] helps Gemini for links.
-  static Future<AIContext> analyze(String rawTitle, String rawContent, {String? url}) async {
+  /// Analyze content and generate tags + summary. Optional [url] helps for links. Optional [imagePath] for images.
+  static Future<AIContext> analyze(String rawTitle, String rawContent, {String? url, String? imagePath}) async {
+    String title = rawTitle;
     String summary = '';
     String tldr = '';
     List<String> generatedTags = [];
     
-    // Try Groq first if configured
-    if (GroqService.isConfigured) {
-      // User requested to provide link as input if available
-      final result = await GroqService.analyze(rawTitle, rawContent, url: url);
-      if (result != null) {
-        summary = result.summary;
-        tldr = result.tldr;
-        generatedTags = result.tags;
-      }
+    // Use Cloudflare AI for analysis
+    final result = imagePath != null && imagePath.isNotEmpty
+        ? await CloudflareAIService.analyzeImage(imagePath)
+        : await CloudflareAIService.analyzeText(rawTitle, rawContent, url: url);
+        
+    if (result != null) {
+      if (result.title.isNotEmpty) title = result.title;
+      summary = result.summary;
+      tldr = result.tldr;
+      generatedTags = result.tags;
     }
     
-    // Fallback to keyword-based tagging if Groq not available or failed
+    // Fallback to keyword-based tagging if AI failed
     if (generatedTags.isEmpty) {
       String combinedText = "$rawTitle $rawContent ${url ?? ''}".toLowerCase();
       
@@ -84,9 +87,7 @@ class AIService {
     }
 
     // Fallback logic for summary and tldr
-    // Fallback logic for summary and tldr
     if (summary.isEmpty) {
-      // Use original content (which might be the URL or OG description)
       summary = rawContent;
     }
     if (tldr.isEmpty) {
@@ -94,11 +95,11 @@ class AIService {
     }
 
     return AIContext(
-      title: rawTitle,
+      title: title,
       summary: summary,
       tldr: tldr,
       tags: generatedTags.toSet().toList(),
-      embedding: null, // Embeddings managed by RagService
+      embedding: null,
     );
   }
 }

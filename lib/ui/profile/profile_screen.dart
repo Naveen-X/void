@@ -8,7 +8,6 @@ import 'about_screen.dart';
 import '../../data/stores/void_store.dart';
 import '../../services/security_service.dart';
 import '../../services/haptic_service.dart';
-import '../../services/groq_service.dart';
 import '../theme/void_design.dart';
 import '../theme/void_theme.dart';
 import '../theme/theme_provider.dart';
@@ -16,7 +15,6 @@ import 'package:provider/provider.dart';
 
 // Extracted components
 import 'components/profile_tiles.dart';
-import 'components/api_key_sheet.dart';
 import 'components/glitchy_404.dart';
 import '../widgets/glass_card.dart';
 import '../painters/custom_painters.dart';
@@ -79,18 +77,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     });
 
     _statsAnimController.forward();
-  }
-
-  void _showApiKeySheet() {
-    final controller =
-        TextEditingController(text: GroqService.getApiKey() ?? '');
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ApiKeySheetContent(controller: controller),
-    );
   }
 
   @override
@@ -297,9 +283,12 @@ class _ProfileScreenState extends State<ProfileScreen>
     return GlassCard(
       child: ActionTile(
         icon: Icons.auto_awesome,
-        title: 'Groq API Key',
-        subtitle: 'Enable AI tagging & summaries',
-        onTap: () => _showApiKeySheet(),
+        title: 'AI Analysis',
+        subtitle: 'Powered by Cloudflare Workers AI',
+        onTap: () {
+          HapticService.light();
+          // No configuration needed - AI is always available
+        },
       ),
     );
   }
