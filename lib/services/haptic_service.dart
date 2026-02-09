@@ -6,4 +6,5 @@ class HapticService {
   static void heavy() => HapticFeedback.heavyImpact();
   static void success() => HapticFeedback.vibrate(); // Double pulse on some devices
   static void warning() => HapticFeedback.vibrate();
+  static void selection() => HapticFeedback.selectionClick();
 }

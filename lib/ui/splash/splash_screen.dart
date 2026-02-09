@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/security_service.dart';
 import '../../data/stores/void_store.dart';
+import '../../data/stores/preferences_store.dart';
 import '../home/home_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 import '../theme/void_theme.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -74,6 +76,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     try {
       // Initialize database
       await VoidStore.init();
+      await PreferencesStore.init();
       
       for (int i = 0; i <= 90; i += 10) {
         if (!mounted) return;
@@ -119,11 +122,16 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     }
 
     await Future.delayed(const Duration(milliseconds: 300));
+    
     if (mounted) {
+      // Check onboarding status
+      final bool onboarded = PreferencesStore.isOnboardingComplete;
+      final Widget nextScreen = onboarded ? const HomeScreen() : const OnboardingScreen();
+
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 800),
-          pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+          pageBuilder: (context, animation, secondaryAnimation) => nextScreen,
           transitionsBuilder: (context, anim, secondaryAnim, child) {
             return FadeTransition(
               opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
