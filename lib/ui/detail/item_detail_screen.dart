@@ -8,6 +8,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart'; // For sharing
+import 'package:open_filex/open_filex.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart'; // For Clipboard
 
 import 'package:void_space/data/models/void_item.dart';
 import 'package:void_space/data/stores/void_store.dart';
@@ -125,9 +128,42 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       widget.onDelete(); // Trigger refresh on parent
   }
 
-  void _openFile(String path) {
-    // Basic implementation for now, or just placeholder if platform logic is elsewhere
-    // In previous code it was just a placeholder or used platform channels
+  Future<void> _openFile(String path) async {
+    if (path.isEmpty) return;
+
+    try {
+      if (_editedItem.type == 'link' || path.startsWith('http')) {
+        final Uri uri = Uri.parse(path);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open link')),
+          );
+        }
+        return;
+      }
+
+      // Check if file exists
+      if (!File(path).existsSync()) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('File not found')),
+        );
+        return;
+      }
+
+      final result = await OpenFilex.open(path);
+      if (result.type != ResultType.done) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open file: ${result.message}')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error opening file: $e');
+    }
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
@@ -301,7 +337,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         title: context.title.isNotEmpty ? context.title : _editedItem.title, // Update title!
         summary: context.summary,
         tldr: context.tldr,
-        content: context.summary, // Update content to match new summary to solve redundancy glitch
+        // Only update content for notes, preserve path/url for files/links
+        content: _editedItem.type == 'note' ? context.summary : _editedItem.content,
         tags: context.tags, // Refresh tags as well
       );
       
@@ -351,7 +388,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 SliverAppBar(
                   expandedHeight: 400,
                   stretch: true,
-                  backgroundColor: Colors.transparent,
+                  pinned: false, // Revert to standard scrolling behaviors
+                  // backgroundColor: Colors.transparent,
                   automaticallyImplyLeading: false,
                   flexibleSpace: FlexibleSpaceBar(
                     stretchModes: const [
@@ -361,17 +399,33 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   ),
                 ),
 
+              // Explicit Separator Line
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    left: 24, 
-                    right: 24, 
-                    bottom: 120,
-                    top: (_editedItem.imageUrl == null || _editedItem.imageUrl!.isEmpty) 
-                        ? MediaQuery.of(context).padding.top + 64 
-                        : 24,
+                child: Container(
+                  height: 1,
+                  color: theme.textPrimary.withValues(alpha: 0.15),
+                ),
+              ),
+
+
+              SliverToBoxAdapter(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.bgPrimary,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(28),
+                      topRight: Radius.circular(28),
+                    ),
                   ),
-                  child: Column(
+                  // Removed overlap to allow separator to be distinct
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      left: 24,
+                      right: 24,
+                      bottom: 24, // Reduced from 120
+                      top: 32,
+                    ),
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Title Section
@@ -440,21 +494,20 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                            _buildContentSection(),
                       ],
 
-                      if (isFileType(_editedItem.type)) ...[
-                         const SizedBox(height: VoidDesign.spaceXL),
-                         DetailActions.buildOpenFileButton(
-                           _editedItem, 
-                           () => _openFile(_editedItem.content)
-                         ),
-                      ],
+                      /* 
+                         Moved Open File button to bottom actions row 
+                         for better reachability and cleaner UI 
+                      */
 
-                      // Danger Zone (Only visible when not editing)
+
+                      // Actions (View, Share, Delete) - Only visible when not editing
                       if (!_isEditMode) ...[
-                        const SizedBox(height: 60),
-                        _buildDeleteButton(context),
+                        const SizedBox(height: 24), // Reduced from 60
+                        _buildBottomActions(context),
                       ],
                     ],
                   ),
+                ),
                 ),
               ),
             ],
@@ -485,10 +538,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             height: 40,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: theme.bgCard.withValues(alpha: 0.3),
-                              border: Border.all(color: theme.textPrimary.withValues(alpha: 0.1)),
+                              color: Colors.black.withValues(alpha: 0.2),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                             ),
-                            child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: theme.textPrimary),
+                            child: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Colors.white),
                           ),
                         ),
                       ),
@@ -507,15 +560,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               shape: BoxShape.circle,
                               color: _isEditMode 
                                   ? Colors.greenAccent.withValues(alpha: 0.2)
-                                  : theme.textPrimary.withValues(alpha: 0.05),
+                                  : Colors.black.withValues(alpha: 0.2),
                               border: Border.all(
-                                color: _isEditMode ? Colors.greenAccent : theme.textPrimary.withValues(alpha: 0.1)
+                                color: _isEditMode ? Colors.greenAccent : Colors.white.withValues(alpha: 0.1)
                               ),
                             ),
                             child: Icon(
                               _isEditMode ? Icons.check_rounded : Icons.edit_rounded,
                               size: 20,
-                              color: _isEditMode ? Colors.greenAccent : theme.textPrimary,
+                              color: _isEditMode ? Colors.greenAccent : Colors.white,
                             ),
                           ),
                         ),
@@ -538,7 +591,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         decoration: BoxDecoration(
           color: theme.bgCard.withValues(alpha: 0.2),
         ),
-        clipBehavior: Clip.antiAlias,
         child: isLocalPath(_editedItem.imageUrl!)
             ? Image.file(File(_editedItem.imageUrl!), fit: BoxFit.cover)
             : CachedNetworkImage(
@@ -603,80 +655,122 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
   }
 
-  Widget _buildDeleteButton(BuildContext context) {
+  Widget _buildBottomActions(BuildContext context) {
     final theme = VoidTheme.of(context);
+    final isFile = isFileType(_editedItem.type);
+    
     return Column(
       children: [
-        // Share Button (Top)
-        GestureDetector(
-          onTap: _showShareMenu,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            decoration: BoxDecoration(
-              color: theme.textPrimary.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: theme.textPrimary.withValues(alpha: 0.1),
-                width: 1,
+        Row(
+          children: [
+            // Share Button (Secondary)
+            GestureDetector(
+              onTap: () {
+                 HapticService.light();
+                 _showShareMenu();
+              },
+              child: Container(
+                height: 56,
+                width: 56,
+                decoration: BoxDecoration(
+                  color: theme.bgCard,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: theme.borderSubtle),
+                ),
+                child: Icon(Icons.ios_share_rounded, color: theme.textPrimary, size: 22),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.ios_share_rounded, color: theme.textSecondary, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  'Share Item',
-                  style: GoogleFonts.ibmPlexMono(
-                    color: theme.textSecondary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+            
+            const SizedBox(width: 12),
+
+            // View / Open File / Copy (Primary Action)
+            if (isFile || _editedItem.type == 'link' || _editedItem.type == 'note') ...[
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      HapticService.medium();
+                      if (_editedItem.type == 'note') {
+                        Clipboard.setData(ClipboardData(text: _editedItem.content));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Copied to clipboard',
+                              style: GoogleFonts.ibmPlexMono(color: theme.bgPrimary),
+                            ),
+                            backgroundColor: theme.textPrimary,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        );
+                      } else {
+                        // Use imageUrl for images, otherwise content (files/links)
+                        String path = _editedItem.type == 'image' 
+                            ? (_editedItem.imageUrl ?? _editedItem.content)
+                            : _editedItem.content;
+                        _openFile(path);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.textPrimary,
+                      foregroundColor: theme.bgPrimary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _editedItem.type == 'note' 
+                              ? Icons.copy_rounded 
+                              : (_editedItem.type == 'link' ? Icons.open_in_new_rounded : Icons.open_in_full_rounded),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _editedItem.type == 'note' 
+                              ? "Copy Text" 
+                              : (_editedItem.type == 'link' ? "Open Link" : "Open File"),
+                          style: GoogleFonts.ibmPlexSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
-        
-        const SizedBox(height: 16),
-        
-        // Delete Button (Bottom)
-        GestureDetector(
-          onTap: () => _confirmDelete(context),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            decoration: BoxDecoration(
-              color: theme.textPrimary.withValues(alpha: 0.02), // Slightly darker for delete
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: theme.textPrimary.withValues(alpha: 0.2), // Subtle red border
-                width: 1,
+              ),
+              const SizedBox(width: 12),
+            ],
+
+            // Delete Button (Destructive)
+            GestureDetector(
+              onTap: () {
+                HapticService.light();
+                _confirmDelete(context);
+              },
+              child: Container(
+                height: 56,
+                width: 56,
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
+                ),
+                child: Center(
+                  child: Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 22),
+                ),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.delete_outline_rounded, color: Colors.redAccent.withValues(alpha: 0.8), size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  'Delete Item',
-                  style: GoogleFonts.ibmPlexMono(
-                    color: Colors.redAccent.withValues(alpha: 0.9),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
         
         // Extra bottom padding for scrolling
-        SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
+        SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
       ],
     );
   }
