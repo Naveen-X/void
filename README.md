@@ -1,16 +1,59 @@
-# void_space
+# Void
 
-A new Flutter project.
+Void is a minimal knowledge space focused on clarity and focus.  
+It is intended to be a quiet place for thoughts, notes, and references—without noise or pressure.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## Intent
 
-A few resources to get you started if this is your first Flutter project:
+Void aims to:
+- Stay minimal and calm
+- Reduce cognitive load
+- Avoid productivity gimmicks
+- Let ideas exist without forcing structure
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+This project is exploratory and evolving.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
+
+## Planned Direction (Non-binding)
+
+The following reflect **intent**, not current functionality:
+
+- Simple note creation and editing
+- Clean, distraction-free interface
+- Optional sign-in (e.g. Google) for future sync
+- Cross-device access (planned)
+- Lightweight organization (tags / links)
+
+Nothing here should be assumed as implemented.
+
+---
+
+## Non-Goals
+
+Void does not aim to be:
+- A task or habit manager
+- A social or collaborative platform
+- A feature-heavy productivity system
+
+---
+
+## Status
+
+Concept / early development.  
+The current focus is on defining the core idea before building features.
+
+---
+
+## Name
+
+**Void**  
+A space where ideas exist without pressure or expectation.
+
+---
+
+## License
+
+TBD
