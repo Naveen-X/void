@@ -265,11 +265,7 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
     }
   }
 
-  void _close() {
-    developer.log('ShareLoaderScreen: *** _close() CALLED ***', name: 'ShareLoader');
-    developer.log('ShareLoaderScreen: Stack trace: ${StackTrace.current}', name: 'ShareLoader');
-    ShareBridge.close();
-  }
+  void _close() => ShareBridge.close();
 
   @override
   Widget build(BuildContext context) {
