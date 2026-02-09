@@ -48,6 +48,7 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
   }
   
   Future<void> _processShare() async {
+    // Quick initial delay, then show processing
     await Future.delayed(const Duration(milliseconds: 600));
     if (mounted) setState(() => _orbState = OrbState.processing);
 
@@ -210,25 +211,18 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
       developer.log('ShareLoaderScreen: Initial save', name: 'ShareLoader');
       await VoidStore.add(item);
 
-      // 2. Immediate success feedback
-      if (mounted) {
-        setState(() {
-          _orbState = OrbState.success;
-          _showToast = true;
-        });
-      }
-      HapticService.success();
-
-      // 3. Run AI analysis (capped for speed, but long enough for vision)
+      // 2. Run AI analysis (awaited, not background)
       if (itemType == 'image') {
-        developer.log('ShareLoaderScreen: Starting background AI analysis...', name: 'ShareLoader');
+        developer.log('ShareLoaderScreen: Starting AI analysis for image...', name: 'ShareLoader');
         
         try {
-          // Provide a generous but sensible timeout for vision analysis
+          developer.log('ShareLoaderScreen: Calling CloudflareAIService.analyzeImage...', name: 'ShareLoader');
           final aiResult = await CloudflareAIService.analyzeImage(persistentFile.path)
-              .timeout(const Duration(seconds: 8)); 
+              .timeout(const Duration(seconds: 45));
           
-          if (aiResult != null && mounted) {
+          developer.log('ShareLoaderScreen: AI result received: ${aiResult != null}', name: 'ShareLoader');
+          
+          if (aiResult != null) {
             final finalItem = VoidItem(
               id: item.id,
               type: itemType,
@@ -238,28 +232,44 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
               tldr: aiResult.tldr,
               imageUrl: persistentFile.path,
               createdAt: DateTime.now(),
-              tags: aiResult.tags, // Service now includes shared/ai tags
+              tags: aiResult.tags,
               embedding: null,
             );
             
             developer.log('ShareLoaderScreen: Updating with AI metadata: ${finalItem.title}', name: 'ShareLoader');
             await VoidStore.add(finalItem);
+            developer.log('ShareLoaderScreen: AI metadata saved successfully', name: 'ShareLoader');
           }
-        } catch (e) {
+        } catch (e, stack) {
           developer.log('ShareLoaderScreen: AI metadata failed or timed out: $e', name: 'ShareLoader');
+          developer.log('ShareLoaderScreen: Stack: $stack', name: 'ShareLoader');
         }
       }
 
-      // 4. Short delay to ensure success animation is seen
+      // 3. Show success
+      if (mounted) {
+        setState(() {
+          _orbState = OrbState.success;
+          _showToast = true;
+        });
+      }
+      HapticService.success();
+
+      // 4. Quick success display, then close
       await Future.delayed(const Duration(milliseconds: 600));
       _close();
-    } catch (e) {
+    } catch (e, stack) {
       developer.log('ShareLoaderScreen: Error processing file: $e', name: 'ShareLoader');
+      developer.log('ShareLoaderScreen: Stack: $stack', name: 'ShareLoader');
       _close();
     }
   }
 
-  void _close() => ShareBridge.close();
+  void _close() {
+    developer.log('ShareLoaderScreen: *** _close() CALLED ***', name: 'ShareLoader');
+    developer.log('ShareLoaderScreen: Stack trace: ${StackTrace.current}', name: 'ShareLoader');
+    ShareBridge.close();
+  }
 
   @override
   Widget build(BuildContext context) {

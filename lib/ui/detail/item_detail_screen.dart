@@ -298,6 +298,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       );
       
       final updatedItem = _editedItem.copyWith(
+        title: context.title.isNotEmpty ? context.title : _editedItem.title, // Update title!
         summary: context.summary,
         tldr: context.tldr,
         content: context.summary, // Update content to match new summary to solve redundancy glitch
@@ -309,8 +310,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       if (mounted) {
         setState(() {
           _editedItem = updatedItem;
+          _titleController.text = updatedItem.title; // Also update text controller
+          _editedTags = List.from(updatedItem.tags); // Update local tags state
           _isGeneratingAI = false;
         });
+        widget.onDelete(); // Trigger refresh on parent so home screen is updated
         HapticService.success();
       }
     } catch (e) {

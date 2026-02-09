@@ -26,17 +26,21 @@ class CloudflareAIService {
   static const String _endpoint = 'https://void.naveenxd2580.workers.dev/';
   static const int _maxImageSize = 512; // Reduced for faster upload
   
-  /// Compress image to reduce payload size
+  /// Compress image to reduce payload size (inline, no isolate)
   static Future<Uint8List?> _compressImage(Uint8List bytes) async {
     try {
-      return await compute(_compressImageIsolate, bytes);
+      debugPrint('CloudflareAI: Starting compression...');
+      // Do compression inline (no compute/isolate) for share activity compatibility
+      final result = _compressImageSync(bytes);
+      debugPrint('CloudflareAI: Compression complete');
+      return result;
     } catch (e) {
       debugPrint('CloudflareAI: Image compression failed: $e');
       return bytes; // Return original if compression fails
     }
   }
   
-  static Uint8List _compressImageIsolate(Uint8List bytes) {
+  static Uint8List _compressImageSync(Uint8List bytes) {
     final image = img.decodeImage(bytes);
     if (image == null) return bytes;
     
@@ -73,6 +77,7 @@ class CloudflareAIService {
       if (compressed == null) return null;
       
       debugPrint('CloudflareAI: Compressed size: ${compressed.length} bytes');
+      debugPrint('CloudflareAI: *** AFTER COMPRESSION - STARTING API CALL ***');
 
       final prompt = '''Analyze this image for a digital knowledge base.
 You MUST respond with valid JSON in this exact format:
@@ -91,6 +96,7 @@ CRITICAL:
 
 
       // Use multipart form data with actual file upload
+      debugPrint('CloudflareAI: Building multipart request to $_endpoint');
       final request = http.MultipartRequest('POST', Uri.parse(_endpoint));
       
       // Add image as actual file (not as base64 string field)
@@ -104,17 +110,22 @@ CRITICAL:
       request.fields['user_message'] = prompt;
       request.fields['system_prompt'] = 'Respond ONLY with valid JSON metadata. No conversational text.';
       
+      debugPrint('CloudflareAI: Sending image request (${compressed.length} bytes)...');
       final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+      debugPrint('CloudflareAI: Got streamed response, reading body...');
       final response = await http.Response.fromStream(streamedResponse);
+      debugPrint('CloudflareAI: Response status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         debugPrint('CloudflareAI Error: ${response.statusCode} - ${response.body}');
         return null;
       }
 
+      debugPrint('CloudflareAI: Response body (first 200 chars): ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
       return _parseResponse(response);
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('CloudflareAI image error: $e');
+      debugPrint('CloudflareAI stack: $stack');
       return null;
     }
   }
