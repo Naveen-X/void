@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html;
 
+import 'package:void_space/app/feature_flags.dart';
 import 'package:void_space/data/models/void_item.dart';
 import 'package:void_space/services/ai_service.dart'; // Import AI service
 
@@ -85,23 +86,26 @@ class LinkMetadataService {
     );
   } catch (e) {
       // Even if scraping fails, try to get AI context from the URL itself
-      try {
-        final aiContext = await AIService.analyze('', url, url: url);
-        return VoidItem(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          type: 'link',
-          content: url,
-          title: aiContext.title.isNotEmpty ? aiContext.title : (Uri.tryParse(url)?.host ?? 'Saved Link'),
-          summary: aiContext.summary,
-          tldr: aiContext.tldr,
-          imageUrl: null,
-          createdAt: DateTime.now(),
-          tags: aiContext.tags,
-          embedding: aiContext.embedding,
-        );
-      } catch (_) {
-        return VoidItem.fallback(url);
+      if (isAiEnabled) {
+        try {
+          final aiContext = await AIService.analyze('', url, url: url);
+          return VoidItem(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            type: 'link',
+            content: url,
+            title: aiContext.title.isNotEmpty ? aiContext.title : (Uri.tryParse(url)?.host ?? 'Saved Link'),
+            summary: aiContext.summary,
+            tldr: aiContext.tldr,
+            imageUrl: null,
+            createdAt: DateTime.now(),
+            tags: aiContext.tags,
+            embedding: aiContext.embedding,
+          );
+        } catch (_) {
+          return VoidItem.fallback(url);
+        }
       }
+      return VoidItem.fallback(url);
     }
   }
 }

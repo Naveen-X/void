@@ -2,6 +2,7 @@
 // Controller for Home Screen logic
 
 import 'package:flutter/material.dart';
+import 'package:void_space/app/feature_flags.dart';
 import 'package:void_space/data/models/void_item.dart';
 import 'package:void_space/data/stores/void_store.dart';
 import 'package:void_space/services/haptic_service.dart';
@@ -70,8 +71,8 @@ class HomeController extends ChangeNotifier {
     // 1. Always get text search results (fast & reliable)
     final textResults = _textSearch(_currentQuery);
     
-    // 2. Try to get semantic results if ready
-    if (_currentQuery.length >= 3 && RagService.isInitialized) {
+    // 2. Try to get semantic results if AI is enabled and ready
+    if (isAiEnabled && _currentQuery.length >= 3 && RagService.isInitialized) {
       final semanticItems = await VoidStore.semanticSearch(_currentQuery);
       
       // Use a Set to merge unique items, preserving semantic order where possible

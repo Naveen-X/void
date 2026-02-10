@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:void_space/app/feature_flags.dart';
 import '../../theme/void_theme.dart';
 import 'package:void_space/data/models/void_item.dart';
 
@@ -45,45 +46,46 @@ class SummarySection extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            // AI regenerate button - always available with CloudflareAI
-            GestureDetector(
-              onTap: onGenerate,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.cyanAccent.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: Colors.cyanAccent.withValues(alpha: 0.2)),
-                  ),
-                  child: Row(
-                    children: [
-                      if (isGenerating)
-                        const SizedBox(
-                          width: 10,
-                          height: 10,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
+            // AI regenerate button - only visible when AI is enabled
+            if (isAiEnabled)
+              GestureDetector(
+                onTap: onGenerate,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.cyanAccent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: Colors.cyanAccent.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        if (isGenerating)
+                          const SizedBox(
+                            width: 10,
+                            height: 10,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.5,
+                              color: Colors.cyanAccent,
+                            ),
+                          )
+                        else
+                          const Icon(Icons.auto_awesome_rounded,
+                              size: 10, color: Colors.cyanAccent),
+                        const SizedBox(width: 6),
+                        Text(
+                          isGenerating ? 'THINKING...' : 'REFRESH',
+                          style: GoogleFonts.ibmPlexMono(
                             color: Colors.cyanAccent,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
                           ),
-                        )
-                      else
-                        const Icon(Icons.auto_awesome_rounded,
-                            size: 10, color: Colors.cyanAccent),
-                      const SizedBox(width: 6),
-                      Text(
-                        isGenerating ? 'THINKING...' : 'REFRESH',
-                        style: GoogleFonts.ibmPlexMono(
-                          color: Colors.cyanAccent,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
           ],
         ),
         const SizedBox(height: 12),

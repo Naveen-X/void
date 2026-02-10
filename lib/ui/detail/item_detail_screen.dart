@@ -15,6 +15,7 @@ import 'package:flutter/services.dart'; // For Clipboard
 import 'package:void_space/data/models/void_item.dart';
 import 'package:void_space/data/stores/void_store.dart';
 import 'package:void_space/services/haptic_service.dart';
+import 'package:void_space/app/feature_flags.dart';
 import 'package:void_space/services/ai_service.dart';
 import 'package:void_space/ui/theme/void_design.dart';
 import 'package:void_space/ui/theme/void_theme.dart';
@@ -321,6 +322,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   }
 
   Future<void> _generateAIContext() async {
+    if (!isAiEnabled) return;
     setState(() => _isGeneratingAI = true);
     HapticService.medium();
 
@@ -396,6 +398,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       StretchMode.zoomBackground,
                     ],
                     background: _buildHeaderImageContent(),
+                  ),
+                ),
+
+              // When there's no image, add top padding so content clears the floating header
+              if (_editedItem.imageUrl == null || _editedItem.imageUrl!.isEmpty)
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: MediaQuery.of(context).padding.top + 56,
                   ),
                 ),
 

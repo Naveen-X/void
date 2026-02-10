@@ -8,6 +8,7 @@ import 'about_screen.dart';
 import '../../data/stores/void_store.dart';
 import '../../services/security_service.dart';
 import '../../services/haptic_service.dart';
+import '../../app/feature_flags.dart';
 import '../theme/void_design.dart';
 import '../theme/void_theme.dart';
 import '../theme/theme_provider.dart';
@@ -124,10 +125,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                   _buildSectionTitle("SECURITY", theme),
                   const SizedBox(height: 12),
                   _buildSecuritySection(theme),
-                  const SizedBox(height: 28),
-                  _buildSectionTitle("AI SETTINGS", theme),
-                  const SizedBox(height: 12),
-                  _buildAISettingsSection(theme),
+                  if (isAiEnabled) ...[
+                    const SizedBox(height: 28),
+                    _buildSectionTitle("AI SETTINGS", theme),
+                    const SizedBox(height: 12),
+                    _buildAISettingsSection(theme),
+                  ],
                   const SizedBox(height: 28),
                   _buildSectionTitle("DATA", theme),
                   const SizedBox(height: 12),

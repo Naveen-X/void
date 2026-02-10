@@ -9,6 +9,7 @@ import 'package:void_space/data/stores/void_store.dart';
 import 'package:void_space/services/link_metadata_service.dart';
 import 'package:void_space/services/share_bridge.dart';
 import 'package:void_space/services/haptic_service.dart';
+import 'package:void_space/app/feature_flags.dart';
 import 'package:void_space/services/ai_service.dart';
 import 'package:void_space/services/cloudflare_ai_service.dart';
 import 'orb_loader.dart';
@@ -212,7 +213,7 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
       await VoidStore.add(item);
 
       // 2. Run AI analysis (awaited, not background)
-      if (itemType == 'image') {
+      if (isAiEnabled && itemType == 'image') {
         developer.log('ShareLoaderScreen: Starting AI analysis for image...', name: 'ShareLoader');
         
         try {

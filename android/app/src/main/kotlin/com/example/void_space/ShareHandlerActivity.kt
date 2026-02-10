@@ -1,4 +1,4 @@
-package com.example.void_space
+package `in`.devh.void
 
 import android.content.Intent
 import android.net.Uri

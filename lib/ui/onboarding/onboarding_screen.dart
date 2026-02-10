@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:void_space/data/stores/preferences_store.dart';
 import 'package:void_space/services/haptic_service.dart';
+import 'package:void_space/app/feature_flags.dart';
 import 'package:void_space/ui/theme/void_theme.dart';
 import 'package:void_space/ui/theme/void_design.dart';
 
@@ -27,11 +28,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       description: "Save everything in one place.\nImages, PDFs, Links, and Notes.",
       icon: Icons.grid_view_rounded,
     ),
-    OnboardingContent(
-      title: "AI POWERED",
-      description: "Semantic search and auto-summarization.\nFind what you need, instantly.",
-      icon: Icons.auto_awesome_rounded,
-    ),
+    if (isAiEnabled)
+      OnboardingContent(
+        title: "AI POWERED",
+        description: "Semantic search and auto-summarization.\nFind what you need, instantly.",
+        icon: Icons.auto_awesome_rounded,
+      ),
   ];
 
   @override

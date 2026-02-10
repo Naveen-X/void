@@ -1,3 +1,4 @@
+import 'package:void_space/app/feature_flags.dart';
 import 'cloudflare_ai_service.dart';
 
 /// Context returned by AI analysis
@@ -31,19 +32,21 @@ class AIService {
     String tldr = '';
     List<String> generatedTags = [];
     
-    // Use Cloudflare AI for analysis
-    final result = imagePath != null && imagePath.isNotEmpty
-        ? await CloudflareAIService.analyzeImage(imagePath)
-        : await CloudflareAIService.analyzeText(rawTitle, rawContent, url: url);
-        
-    if (result != null) {
-      if (result.title.isNotEmpty) title = result.title;
-      summary = result.summary;
-      tldr = result.tldr;
-      generatedTags = result.tags;
+    // Only call Cloudflare AI when the feature is enabled
+    if (isAiEnabled) {
+      final result = imagePath != null && imagePath.isNotEmpty
+          ? await CloudflareAIService.analyzeImage(imagePath)
+          : await CloudflareAIService.analyzeText(rawTitle, rawContent, url: url);
+          
+      if (result != null) {
+        if (result.title.isNotEmpty) title = result.title;
+        summary = result.summary;
+        tldr = result.tldr;
+        generatedTags = result.tags;
+      }
     }
     
-    // Fallback to keyword-based tagging if AI failed
+    // Fallback to keyword-based tagging if AI failed or disabled
     if (generatedTags.isEmpty) {
       String combinedText = "$rawTitle $rawContent ${url ?? ''}".toLowerCase();
       
