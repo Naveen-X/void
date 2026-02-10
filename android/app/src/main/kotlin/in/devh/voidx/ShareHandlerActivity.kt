@@ -1,4 +1,4 @@
-package `in`.devh.void
+package `in`.devh.voidx
 
 import android.content.Intent
 import android.net.Uri

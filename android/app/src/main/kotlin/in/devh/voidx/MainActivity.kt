@@ -1,4 +1,4 @@
-package `in`.devh.void
+package `in`.devh.voidx
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
