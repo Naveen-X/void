@@ -21,7 +21,7 @@
         </intent>
     </queries>    
     <application
-        android:label="void_space"
+        android:label="Void"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
