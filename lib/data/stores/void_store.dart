@@ -5,6 +5,11 @@ import '../models/void_item.dart';
 import '../../services/embedding_service.dart';
 import '../../services/rag_service.dart';
 
+class DuplicateItemException implements Exception {
+  final String message;
+  DuplicateItemException(this.message);
+}
+
 class VoidStore {
   static Future<void> init() async {
     await VoidDatabase.init();
@@ -18,7 +23,17 @@ class VoidStore {
     return await VoidDatabase.getDeletedItems();
   }
 
+  static Future<bool> isDuplicate(VoidItem item) async {
+    return await VoidDatabase.isDuplicate(item);
+  }
+
   static Future<void> add(VoidItem item) async {
+    // Check for duplicates before generating embeddings
+    final isDuplicate = await VoidDatabase.isDuplicate(item);
+    if (isDuplicate) {
+      throw DuplicateItemException('This item already exists.');
+    }
+
     // Generate embedding if service is ready and item doesn't have one
     final itemToStore = await _ensureEmbedding(item);
     await VoidDatabase.insertItem(itemToStore);

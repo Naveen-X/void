@@ -24,6 +24,7 @@ class ShareLoaderScreen extends StatefulWidget {
 class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
   OrbState _orbState = OrbState.idle;
   bool _showToast = false;
+  String _toastMessage = "FRAGMENT SAVED";
   
   @override
   void initState() {
@@ -88,9 +89,15 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
     try {
       developer.log('ShareLoaderScreen: Processing text share', name: 'ShareLoader');
       
+      final isLink = rawText.startsWith('http');
+      final checkItem = VoidItem.fallback(rawText, type: isLink ? 'link' : 'note');
+      if (await VoidStore.isDuplicate(checkItem)) {
+        throw DuplicateItemException('This item already exists.');
+      }
+      
       VoidItem item;
 
-      if (rawText.startsWith('http')) {
+      if (isLink) {
         try {
           // DIRECT MATCH OF MANUAL ENTRY LOGIC:
           // We trust LinkMetadataService to do the heavy lifting (Scraping + AI).
@@ -134,9 +141,21 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
         setState(() {
           _orbState = OrbState.success;
           _showToast = true;
+          _toastMessage = "FRAGMENT SAVED";
         });
       }
 
+      await Future.delayed(const Duration(milliseconds: 2200));
+      _close();
+    } on DuplicateItemException catch (_) {
+      if (mounted) {
+        setState(() {
+            _orbState = OrbState.success;
+            _showToast = true;
+            _toastMessage = "ALREADY SAVED";
+        });
+      }
+      HapticService.light();
       await Future.delayed(const Duration(milliseconds: 2200));
       _close();
     } catch (e) {
@@ -252,12 +271,24 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
         setState(() {
           _orbState = OrbState.success;
           _showToast = true;
+          _toastMessage = "FRAGMENT SAVED";
         });
       }
       HapticService.success();
 
       // 4. Quick success display, then close
       await Future.delayed(const Duration(milliseconds: 600));
+      _close();
+    } on DuplicateItemException catch (_) {
+      if (mounted) {
+        setState(() {
+            _orbState = OrbState.success;
+            _showToast = true;
+            _toastMessage = "ALREADY SAVED";
+        });
+      }
+      HapticService.light();
+      await Future.delayed(const Duration(milliseconds: 2200));
       _close();
     } catch (e, stack) {
       developer.log('ShareLoaderScreen: Error processing file: $e', name: 'ShareLoader');
@@ -306,6 +337,7 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
   }
 
   Widget _buildToast() {
+    final isDuplicate = _toastMessage == "ALREADY SAVED";
     return Material(
       type: MaterialType.transparency,
       child: TweenAnimationBuilder<double>(
@@ -326,14 +358,23 @@ class _ShareLoaderScreenState extends State<ShareLoaderScreen> {
               BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 30)
             ]
           ),
-          child: Text(
-            "FRAGMENT SAVED",
-            style: GoogleFonts.ibmPlexMono(
-              color: Colors.white,
-              fontSize: 10,
-              letterSpacing: 3,
-              fontWeight: FontWeight.w600,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isDuplicate) ...[
+                const Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent, size: 14),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                _toastMessage,
+                style: GoogleFonts.ibmPlexMono(
+                  color: isDuplicate ? Colors.amberAccent : Colors.white,
+                  fontSize: 10,
+                  letterSpacing: 3,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ),
       ),

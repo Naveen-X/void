@@ -24,6 +24,29 @@ class VoidDatabase {
     return _box!;
   }
 
+  static Future<bool> isDuplicate(VoidItem newItem) async {
+    final activeItems = box.values.where((item) => !item.isDeleted);
+    
+    for (final existingItem in activeItems) {
+      if (existingItem.type != newItem.type) continue;
+      
+      // For links and notes, check if the exact trimmed text matches
+      if (newItem.type == 'link' || newItem.type == 'note') {
+        if (existingItem.content.trim() == newItem.content.trim()) {
+          return true;
+        }
+      } 
+      // For files/images, check the title (filename) and content (usually size representation)
+      else if (newItem.type == 'file' || newItem.type == 'image' || newItem.type == 'video' || newItem.type == 'pdf' || newItem.type == 'document') {
+         if (existingItem.title == newItem.title && existingItem.content == newItem.content) {
+            return true;
+         }
+      }
+    }
+    
+    return false;
+  }
+
   static Future<void> insertItem(VoidItem item) async {
     await box.put(item.id, item);
   }
