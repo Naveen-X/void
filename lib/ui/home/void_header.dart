@@ -12,15 +12,17 @@ class VoidHeader extends StatelessWidget {
   final VoidCallback onClearFilters;
   final Function(String) onToggleTag;
   final Color Function(String) getTagColor;
+  final VoidCallback onOpenMenu;
 
   const VoidHeader({
-    super.key, 
+    super.key,
     this.blurOpacity = 0.0,
     this.availableTags = const [],
     this.selectedTags = const {},
     required this.onClearFilters,
     required this.onToggleTag,
     required this.getTagColor,
+    required this.onOpenMenu,
   });
 
   @override
@@ -31,7 +33,11 @@ class VoidHeader extends StatelessWidget {
     const double tagBarHeight = 52.0;
     final bool hasTags = availableTags.isNotEmpty;
     // Add 1.0 to totalHeight to account for the bottom border which adds padding to the container
-    final double totalHeight = statusBarHeight + headerContentHeight + (hasTags ? tagBarHeight : 0) + 1.0;
+    final double totalHeight =
+        statusBarHeight +
+        headerContentHeight +
+        (hasTags ? tagBarHeight : 0) +
+        1.0;
 
     // Always have blur for frosted effect
     final effectiveBlur = 0.4 + (0.6 * blurOpacity);
@@ -47,10 +53,7 @@ class VoidHeader extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.bgPrimary.withValues(alpha: 0.4 + (0.3 * blurOpacity)),
             border: Border(
-              bottom: BorderSide(
-                color: theme.borderSubtle,
-                width: 1,
-              ),
+              bottom: BorderSide(color: theme.borderSubtle, width: 1),
             ),
           ),
           child: Column(
@@ -58,29 +61,45 @@ class VoidHeader extends StatelessWidget {
               // Status bar space + header content
               Container(
                 height: statusBarHeight + headerContentHeight,
-                padding: EdgeInsets.fromLTRB(24, statusBarHeight, 24, 0),
+                padding: EdgeInsets.fromLTRB(16, statusBarHeight, 24, 0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Hero(
-                      tag: 'void_brand',
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: Text(
-                          'void',
-                          style: GoogleFonts.ibmPlexMono(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w400,
-                            letterSpacing: -1.0,
-                            color: theme.textPrimary,
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.notes_rounded,
+                            color: theme.textSecondary,
+                            size: 26,
+                          ),
+                          onPressed: onOpenMenu,
+                          splashRadius: 20,
+                        ),
+                        const SizedBox(width: 4),
+                        Hero(
+                          tag: 'void_brand',
+                          child: Material(
+                            type: MaterialType.transparency,
+                            child: Text(
+                              'void',
+                              style: GoogleFonts.ibmPlexMono(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w400,
+                                letterSpacing: -1.0,
+                                color: theme.textPrimary,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                     GestureDetector(
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileScreen(),
+                        ),
                       ),
                       child: Hero(
                         tag: 'profile_icon_hero',
@@ -90,29 +109,30 @@ class VoidHeader extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: theme.textPrimary.withValues(alpha: 0.1),
-                            border: Border.all(color: theme.textPrimary.withValues(alpha: 0.1)),
+                            border: Border.all(
+                              color: theme.textPrimary.withValues(alpha: 0.1),
+                            ),
                           ),
-                          child: Icon(Icons.person, size: 18, color: theme.textSecondary),
+                          child: Icon(
+                            Icons.person,
+                            size: 18,
+                            color: theme.textSecondary,
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              
+
               // Tags bar (integrated) - uses remaining space
-              if (hasTags)
-                Expanded(
-                  child: _buildTagsRow(context),
-                ),
+              if (hasTags) Expanded(child: _buildTagsRow(context)),
             ],
           ),
         ),
       ),
     );
   }
-  
-
 
   Widget _buildTagsRow(BuildContext context) {
     final theme = VoidTheme.of(context);
@@ -130,35 +150,42 @@ class VoidHeader extends StatelessWidget {
               onTap: onClearFilters,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
-                  color: isAllSelected 
-                    ? theme.textPrimary.withValues(alpha: 0.15)
-                    : theme.textPrimary.withValues(alpha: 0.05),
+                  color: isAllSelected
+                      ? theme.textPrimary.withValues(alpha: 0.15)
+                      : theme.textPrimary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(VoidDesign.radiusMD),
                   border: Border.all(
-                    color: isAllSelected 
-                      ? theme.textPrimary.withValues(alpha: 0.3)
-                      : theme.borderSubtle,
+                    color: isAllSelected
+                        ? theme.textPrimary.withValues(alpha: 0.3)
+                        : theme.borderSubtle,
                   ),
                 ),
                 child: Text(
                   "All",
                   style: GoogleFonts.ibmPlexSans(
-                    color: isAllSelected ? theme.textPrimary : theme.textTertiary,
+                    color: isAllSelected
+                        ? theme.textPrimary
+                        : theme.textTertiary,
                     fontSize: 13,
-                    fontWeight: isAllSelected ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: isAllSelected
+                        ? FontWeight.w600
+                        : FontWeight.w400,
                   ),
                 ),
               ),
             ),
           );
         }
-        
+
         final tag = availableTags[index - 1];
         final isSelected = selectedTags.contains(tag);
         final tagColor = getTagColor(tag);
-        
+
         return Padding(
           padding: const EdgeInsets.only(right: 10),
           child: GestureDetector(
@@ -166,16 +193,19 @@ class VoidHeader extends StatelessWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               // Adjusted padding to accommodate icon
-              padding: EdgeInsets.symmetric(horizontal: isSelected ? 12 : 16, vertical: 10),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSelected ? 12 : 16,
+                vertical: 10,
+              ),
               decoration: BoxDecoration(
-                color: isSelected 
-                  ? tagColor.withValues(alpha: 0.15)
-                  : theme.textPrimary.withValues(alpha: 0.05),
+                color: isSelected
+                    ? tagColor.withValues(alpha: 0.15)
+                    : theme.textPrimary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isSelected 
-                    ? tagColor.withValues(alpha: 0.4)
-                    : theme.textPrimary.withValues(alpha: 0.08),
+                  color: isSelected
+                      ? tagColor.withValues(alpha: 0.4)
+                      : theme.textPrimary.withValues(alpha: 0.08),
                 ),
               ),
               child: Row(
@@ -186,7 +216,9 @@ class VoidHeader extends StatelessWidget {
                     style: GoogleFonts.ibmPlexSans(
                       color: isSelected ? tagColor : theme.textTertiary,
                       fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                     ),
                   ),
                   if (isSelected) ...[

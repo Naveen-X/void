@@ -34,6 +34,9 @@ class VoidItem extends HiveObject {
   @HiveField(8)
   final List<double>? embedding;
 
+  @HiveField(10, defaultValue: false)
+  final bool isDeleted;
+
   VoidItem({
     required this.id,
     required this.type,
@@ -45,6 +48,7 @@ class VoidItem extends HiveObject {
     required this.createdAt,
     this.tags = const [],
     this.embedding,
+    this.isDeleted = false,
   });
 
   factory VoidItem.fromJson(Map<String, dynamic> json) {
@@ -65,6 +69,7 @@ class VoidItem extends HiveObject {
               .map((e) => (e as num).toDouble())
               .toList()
           : null,
+      isDeleted: json['isDeleted'] == 1 || json['isDeleted'] == true || json['isDeleted'] == 'true',
     );
   }
 
@@ -80,6 +85,7 @@ class VoidItem extends HiveObject {
       'createdAt': createdAt.toIso8601String(),
       'tags': jsonEncode(tags),
       'embedding': embedding != null ? jsonEncode(embedding) : null,
+      'isDeleted': isDeleted ? 1 : 0,
     };
   }
 
@@ -97,6 +103,7 @@ class VoidItem extends HiveObject {
       createdAt: DateTime.now(),
       tags: [],
       embedding: null,
+      isDeleted: false,
     );
   }
 
@@ -112,6 +119,7 @@ class VoidItem extends HiveObject {
     DateTime? createdAt,
     List<String>? tags,
     List<double>? embedding,
+    bool? isDeleted,
   }) {
     return VoidItem(
       id: id ?? this.id,
@@ -124,6 +132,7 @@ class VoidItem extends HiveObject {
       createdAt: createdAt ?? this.createdAt,
       tags: tags ?? this.tags,
       embedding: embedding ?? this.embedding,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 }

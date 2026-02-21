@@ -156,9 +156,9 @@ class HomeController extends ChangeNotifier {
     HapticService.warning();
     final bool? confirm = await VoidDialog.show(
       context: context,
-      title: "PURGE ${_selectedIds.length} FRAGMENTS?",
-      message: "This action will permanently erase these items from your local vault.",
-      confirmText: "PURGE",
+      title: "TRASH ${_selectedIds.length} ITEMS?",
+      message: "These items will be moved to the Trash bin.",
+      confirmText: "TRASH",
     );
 
     if (confirm == true) {

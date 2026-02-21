@@ -12,6 +12,7 @@ import '../theme/void_design.dart';
 import '../theme/void_theme.dart';
 import 'components/skeleton_grid.dart';
 import 'components/home_bottom_controls.dart';
+import 'void_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,7 +26,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final ScrollController _scrollCtrl = ScrollController();
   final FocusNode _searchFocusNode = FocusNode();
   final ValueNotifier<double> _headerBlurNotifier = ValueNotifier(0.0);
-  
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   late HomeController _controller;
 
   @override
@@ -33,9 +35,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _controller = HomeController();
-    
+
     _searchCtrl.addListener(() {
-        _controller.applyFilters(_searchCtrl.text);
+      _controller.applyFilters(_searchCtrl.text);
     });
     _scrollCtrl.addListener(_onScroll);
   }
@@ -73,7 +75,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       child: Consumer<HomeController>(
         builder: (context, controller, child) {
           final theme = VoidTheme.of(context);
-          final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+          final double keyboardHeight = MediaQuery.of(
+            context,
+          ).viewInsets.bottom;
           final bool isKeyboardOpen = keyboardHeight > 0;
 
           return PopScope(
@@ -85,22 +89,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               }
             },
             child: Scaffold(
+              key: _scaffoldKey,
               backgroundColor: theme.bgPrimary,
               resizeToAvoidBottomInset: false,
+              drawerEnableOpenDragGesture: true,
+              // Expand drag width so user can swipe to open side bar from anywhere
+              drawerEdgeDragWidth: MediaQuery.of(context).size.width,
+              drawer: VoidDrawer(
+                onReturnFromTrash: () {
+                  controller.refresh();
+                },
+              ),
               body: Stack(
                 children: [
                   _buildMainContent(controller),
 
                   Positioned(
-                    bottom: 0, left: 0, right: 0, height: theme.brightness == Brightness.dark ? 240 : 180,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: theme.brightness == Brightness.dark ? 240 : 180,
                     child: IgnorePointer(
                       child: Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
                             colors: [
                               theme.bgPrimary.withValues(alpha: 0.0),
-                              theme.bgPrimary.withValues(alpha: theme.brightness == Brightness.dark ? 0.8 : 0.2),
+                              theme.bgPrimary.withValues(
+                                alpha: theme.brightness == Brightness.dark
+                                    ? 0.8
+                                    : 0.2,
+                              ),
                               theme.bgPrimary,
                             ],
                             stops: const [0.0, 0.5, 1.0],
@@ -114,7 +135,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     valueListenable: _headerBlurNotifier,
                     builder: (context, blurValue, _) {
                       return Positioned(
-                        top: 0, left: 0, right: 0,
+                        top: 0,
+                        left: 0,
+                        right: 0,
                         child: VoidHeader(
                           blurOpacity: blurValue,
                           availableTags: controller.availableTags,
@@ -122,6 +145,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           onClearFilters: controller.clearTagFilters,
                           onToggleTag: controller.toggleTag,
                           getTagColor: _getTagColor,
+                          onOpenMenu: () =>
+                              _scaffoldKey.currentState?.openDrawer(),
                         ),
                       );
                     },
@@ -131,22 +156,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     AnimatedPositioned(
                       duration: const Duration(milliseconds: 500),
                       curve: Curves.easeOutQuart,
-                      bottom: (isKeyboardOpen ? keyboardHeight + 16 : MediaQuery.of(context).padding.bottom + 24),
+                      bottom: (isKeyboardOpen
+                          ? keyboardHeight + 16
+                          : MediaQuery.of(context).padding.bottom + 24),
                       left: 20,
                       right: 20,
                       child: HomeBottomControls(
-                          isKeyboardOpen: isKeyboardOpen,
-                          isSelectionMode: controller.isSelectionMode,
-                          selectedCount: controller.selectedCount,
-                          searchCtrl: _searchCtrl,
-                          searchFocusNode: _searchFocusNode,
-                          onClearSearch: () {
-                               _searchCtrl.clear();
-                          },
-                          onCancelSelection: controller.clearSelection,
-                          onAdd: () => _showManualEntry(context),
-                          onDelete: () => controller.deleteSelected(context),
-                          isEmptyState: controller.isEmpty && _searchCtrl.text.isEmpty,
+                        isKeyboardOpen: isKeyboardOpen,
+                        isSelectionMode: controller.isSelectionMode,
+                        selectedCount: controller.selectedCount,
+                        searchCtrl: _searchCtrl,
+                        searchFocusNode: _searchFocusNode,
+                        onClearSearch: () {
+                          _searchCtrl.clear();
+                        },
+                        onCancelSelection: controller.clearSelection,
+                        onAdd: () => _showManualEntry(context),
+                        onDelete: () => controller.deleteSelected(context),
+                        isEmptyState:
+                            controller.isEmpty && _searchCtrl.text.isEmpty,
                       ),
                     ),
                 ],
@@ -161,14 +189,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildMainContent(HomeController controller) {
     final theme = VoidTheme.of(context);
     if (controller.loading) {
-        return SkeletonGrid(availableTags: controller.availableTags);
+      return SkeletonGrid(availableTags: controller.availableTags);
     }
 
     if (controller.isEmpty && _searchCtrl.text.isEmpty) {
       return const VoidEmptyState();
     }
-    
-    if (controller.filteredItems.isEmpty && (_searchCtrl.text.isNotEmpty || controller.selectedTags.isNotEmpty)) {
+
+    if (controller.filteredItems.isEmpty &&
+        (_searchCtrl.text.isNotEmpty || controller.selectedTags.isNotEmpty)) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -176,24 +205,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Icon(Icons.search_off_rounded, size: 48, color: theme.textMuted),
             const SizedBox(height: 16),
             Text(
-              _searchCtrl.text.isNotEmpty 
-                ? "NO MATCHES FOR '${_searchCtrl.text}'"
-                : "NO ITEMS WITH SELECTED TAGS",
-              style: GoogleFonts.ibmPlexMono(color: theme.textTertiary, fontSize: 11, letterSpacing: 1),
+              _searchCtrl.text.isNotEmpty
+                  ? "NO MATCHES FOR '${_searchCtrl.text}'"
+                  : "NO ITEMS WITH SELECTED TAGS",
+              style: GoogleFonts.ibmPlexMono(
+                color: theme.textTertiary,
+                fontSize: 11,
+                letterSpacing: 1,
+              ),
             ),
             if (controller.selectedTags.isNotEmpty) ...[
               const SizedBox(height: 12),
               GestureDetector(
                 onTap: controller.clearTagFilters,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: theme.borderSubtle),
                   ),
                   child: Text(
                     "CLEAR FILTERS",
-                    style: GoogleFonts.ibmPlexMono(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.ibmPlexMono(
+                      color: theme.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -205,8 +245,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     // Main scrollable content
     final statusBarHeight = MediaQuery.of(context).padding.top;
-    final headerHeight = statusBarHeight + 56 + (controller.availableTags.isNotEmpty ? 52 : 0);
-    
+    final headerHeight =
+        statusBarHeight + 56 + (controller.availableTags.isNotEmpty ? 52 : 0);
+
     return RefreshIndicator(
       onRefresh: () async {
         HapticService.light();
@@ -220,13 +261,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       edgeOffset: headerHeight,
       child: CustomScrollView(
         controller: _scrollCtrl,
-        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
         slivers: [
           SliverPadding(
             padding: EdgeInsets.fromLTRB(
-              VoidDesign.pageHorizontal, 
-              headerHeight + VoidDesign.spaceMD, 
-              VoidDesign.pageHorizontal, 
+              VoidDesign.pageHorizontal,
+              headerHeight + VoidDesign.spaceMD,
+              VoidDesign.pageHorizontal,
               VoidDesign.spaceMD,
             ),
             sliver: SliverMasonryGrid.count(
@@ -242,8 +285,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   isSelected: controller.selectedIds.contains(item.id),
                   isSelectionMode: controller.isSelectionMode,
                   onSelect: (id) {
-                      _searchFocusNode.unfocus();
-                      controller.toggleSelection(id);
+                    _searchFocusNode.unfocus();
+                    controller.toggleSelection(id);
                   },
                   searchFocusNode: _searchFocusNode,
                   index: index,
@@ -252,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               childCount: controller.filteredItems.length,
             ),
           ),
-          
+
           // Abyss Footer
           SliverToBoxAdapter(
             child: GestureDetector(
@@ -275,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             color: theme.textPrimary.withValues(alpha: 0.1),
                             blurRadius: 12,
                             spreadRadius: 1,
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -289,7 +332,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         fontWeight: FontWeight.w600,
                         shadows: [
                           Shadow(
-                            color: Colors.cyanAccent.withValues(alpha: theme.brightness == Brightness.dark ? 0.3 : 0.1),
+                            color: Colors.cyanAccent.withValues(
+                              alpha: theme.brightness == Brightness.dark
+                                  ? 0.3
+                                  : 0.1,
+                            ),
                             blurRadius: 8,
                           ),
                         ],

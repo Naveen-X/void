@@ -10,8 +10,12 @@ class VoidStore {
     await VoidDatabase.init();
   }
 
-  static Future<List<VoidItem>> all() async {
-    return await VoidDatabase.getAllItems();
+  static Future<List<VoidItem>> all({bool includeDeleted = false}) async {
+    return await VoidDatabase.getAllItems(includeDeleted: includeDeleted);
+  }
+
+  static Future<List<VoidItem>> getTrash() async {
+    return await VoidDatabase.getDeletedItems();
   }
 
   static Future<void> add(VoidItem item) async {
@@ -20,16 +24,33 @@ class VoidStore {
     await VoidDatabase.insertItem(itemToStore);
   }
 
+  /// Soft-delete an item
   static Future<void> delete(String id) async {
-    await VoidDatabase.deleteItem(id);
+    await VoidDatabase.softDeleteItem(id);
   }
 
+  /// Soft-delete multiple items
   static Future<void> deleteMany(Set<String> ids) async {
-    await VoidDatabase.deleteManyItems(ids);
+    await VoidDatabase.softDeleteManyItems(ids);
   }
 
-  static Future<List<VoidItem>> search(String query) async {
-    return await VoidDatabase.searchItems(query);
+  /// Restore a deleted item
+  static Future<void> restore(String id) async {
+    await VoidDatabase.restoreItem(id);
+  }
+
+  /// Permanently delete an item from the trash
+  static Future<void> permanentlyDelete(String id) async {
+    await VoidDatabase.permanentlyDeleteItem(id);
+  }
+
+  /// Permanently delete multiple items from the trash
+  static Future<void> permanentlyDeleteMany(Set<String> ids) async {
+    await VoidDatabase.permanentlyDeleteManyItems(ids);
+  }
+
+  static Future<List<VoidItem>> search(String query, {bool includeDeleted = false}) async {
+    return await VoidDatabase.searchItems(query, includeDeleted: includeDeleted);
   }
 
   /// Optimized search using cosine similarity on local embeddings

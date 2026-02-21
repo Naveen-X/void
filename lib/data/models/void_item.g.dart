@@ -27,13 +27,14 @@ class VoidItemAdapter extends TypeAdapter<VoidItem> {
       createdAt: fields[6] as DateTime,
       tags: (fields[7] as List).cast<String>(),
       embedding: (fields[8] as List?)?.cast<double>(),
+      isDeleted: fields[10] == null ? false : fields[10] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, VoidItem obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -53,7 +54,9 @@ class VoidItemAdapter extends TypeAdapter<VoidItem> {
       ..writeByte(7)
       ..write(obj.tags)
       ..writeByte(8)
-      ..write(obj.embedding);
+      ..write(obj.embedding)
+      ..writeByte(10)
+      ..write(obj.isDeleted);
   }
 
   @override
