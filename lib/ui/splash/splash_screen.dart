@@ -8,6 +8,7 @@ import '../../data/stores/preferences_store.dart';
 import '../home/home_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../theme/void_theme.dart';
+import '../../services/embedding_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -77,6 +78,14 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       // Initialize database
       await VoidStore.init();
       await PreferencesStore.init();
+      
+      // Initialize local embedding model (non-blocking on failure)
+      if (mounted) setState(() => _statusText = "LOADING NEURAL ENGINE");
+      try {
+        await EmbeddingService.init();
+      } catch (_) {
+        debugPrint('Splash: Embedding init failed, search will use keyword fallback');
+      }
       
       for (int i = 0; i <= 90; i += 10) {
         if (!mounted) return;

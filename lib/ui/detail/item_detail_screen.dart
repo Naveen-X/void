@@ -167,14 +167,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     }
   }
 
-  Future<void> _confirmDelete(BuildContext context) async {
+  Future<void> _confirmTrash(BuildContext context) async {
     HapticService.warning();
     final confirmed = await VoidDialog.show(
       context: context,
-      title: 'Delete Item?',
-      message: 'This action cannot be undone. The item will be lost in the void forever.',
-      confirmText: 'Delete',
-      icon: Icons.delete_forever_rounded,
+      title: 'Move to Trash?',
+      message: 'This item will be moved to the Trash bin.',
+      confirmText: 'Trash',
+      icon: Icons.delete_outline_rounded,
     );
 
     if (confirmed == true) {
@@ -757,22 +757,22 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               const SizedBox(width: 12),
             ],
 
-            // Delete Button (Destructive)
+            // Trash Button
             GestureDetector(
               onTap: () {
                 HapticService.light();
-                _confirmDelete(context);
+                _confirmTrash(context);
               },
               child: Container(
                 height: 56,
                 width: 56,
                 decoration: BoxDecoration(
-                  color: Colors.redAccent.withValues(alpha: 0.1),
+                  color: theme.textPrimary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
+                  border: Border.all(color: theme.borderSubtle),
                 ),
                 child: Center(
-                  child: Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 22),
+                  child: Icon(Icons.delete_outline_rounded, color: theme.textSecondary, size: 22),
                 ),
               ),
             ),

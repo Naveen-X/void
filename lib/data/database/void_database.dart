@@ -28,26 +28,60 @@ class VoidDatabase {
     await box.put(item.id, item);
   }
 
-  static Future<List<VoidItem>> getAllItems() async {
-    final items = box.values.toList();
+  static Future<List<VoidItem>> getAllItems({bool includeDeleted = false}) async {
+    var items = box.values.toList();
+    if (!includeDeleted) {
+      items = items.where((item) => !item.isDeleted).toList();
+    }
     items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return items;
   }
 
-  static Future<void> deleteItem(String id) async {
+  static Future<List<VoidItem>> getDeletedItems() async {
+    final items = box.values.where((item) => item.isDeleted).toList();
+    items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return items;
+  }
+
+  static Future<void> softDeleteItem(String id) async {
+    final item = box.get(id);
+    if (item != null) {
+      await box.put(id, item.copyWith(isDeleted: true));
+    }
+  }
+
+  static Future<void> softDeleteManyItems(Set<String> ids) async {
+    if (ids.isEmpty) return;
+    for (final id in ids) {
+        final item = box.get(id);
+        if (item != null) {
+          await box.put(id, item.copyWith(isDeleted: true));
+        }
+    }
+  }
+
+  static Future<void> restoreItem(String id) async {
+    final item = box.get(id);
+    if (item != null) {
+      await box.put(id, item.copyWith(isDeleted: false));
+    }
+  }
+
+  static Future<void> permanentlyDeleteItem(String id) async {
     await box.delete(id);
   }
 
-  static Future<void> deleteManyItems(Set<String> ids) async {
+  static Future<void> permanentlyDeleteManyItems(Set<String> ids) async {
     if (ids.isEmpty) return;
     await box.deleteAll(ids);
   }
 
-  static Future<List<VoidItem>> searchItems(String query) async {
-    if (query.trim().isEmpty) return getAllItems();
+  static Future<List<VoidItem>> searchItems(String query, {bool includeDeleted = false}) async {
+    if (query.trim().isEmpty) return getAllItems(includeDeleted: includeDeleted);
     
     final queryLower = query.toLowerCase();
     final results = box.values.where((item) {
+      if (!includeDeleted && item.isDeleted) return false;
       return item.title.toLowerCase().contains(queryLower) ||
              (item.summary?.toLowerCase().contains(queryLower) ?? false) ||
              item.content.toLowerCase().contains(queryLower) ||
