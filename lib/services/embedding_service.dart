@@ -1,7 +1,4 @@
-import 'dart:math' as math;
-import 'dart:typed_data';
-
-import 'package:flutter/foundation.dart';
+import 'dart:math' as math;import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:onnxruntime/onnxruntime.dart';
 
@@ -300,7 +297,7 @@ class EmbeddingService {
     return vec.map((v) => v / norm).toList();
   }
 
-  /// Flatten arbitrarily nested lists to List<double>
+  /// Flatten arbitrarily nested lists to `List<double>`
   static List<double> _flatten(dynamic data) {
     if (data is double) return [data];
     if (data is num) return [data.toDouble()];

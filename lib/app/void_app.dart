@@ -7,7 +7,6 @@ import '../ui/share/share_loader_screen.dart';
 // Note: SplashScreen needs to be imported if it exists, otherwise define or use a placeholder
 // For now, I'll assume it's in ui/splash/splash_screen.dart or defined elsewhere.
 // I'll check if it exists or use Container/HomeScreen for now to fix compile error if missing.
-import 'package:void_space/data/stores/preferences_store.dart';
 import 'package:void_space/ui/onboarding/onboarding_screen.dart';
 import 'package:void_space/ui/splash/splash_screen.dart';
 

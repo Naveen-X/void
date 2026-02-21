@@ -28,8 +28,6 @@ import 'components/detail_metadata.dart';
 import 'components/edit_item_form.dart';
 import 'components/link_card.dart';
 import 'components/summary_section.dart';
-import 'components/detail_actions.dart';
-
 class ItemDetailScreen extends StatefulWidget {
   final VoidItem item;
   final VoidCallback onDelete;

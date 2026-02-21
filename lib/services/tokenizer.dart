@@ -37,7 +37,7 @@ class WordPieceTokenizer {
   }
 
   /// Tokenize text into model inputs.
-  /// Returns {input_ids, attention_mask, token_type_ids} each as List<int>
+  /// Returns {input_ids, attention_mask, token_type_ids} each as `List<int>`
   /// padded/truncated to [maxLength].
   Map<String, List<int>> encode(String text) {
     if (!_initialized) {
