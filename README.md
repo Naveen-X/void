@@ -1,59 +1,63 @@
-# Void
+# Void Space
 
-Void is a minimal knowledge space focused on clarity and focus.  
-It is intended to be a quiet place for thoughts, notes, and references—without noise or pressure.
+Void Space is a minimal, offline-first knowledge space focused on clarity and focus. It is designed to be a quiet place for your thoughts, notes, and references—without noise, pressure, or productivity gimmicks.
 
----
-
-## Intent
+## 🌟 Philosophy
 
 Void aims to:
-- Stay minimal and calm
-- Reduce cognitive load
-- Avoid productivity gimmicks
-- Let ideas exist without forcing structure
 
-This project is exploratory and evolving.
+- **Stay minimal and calm**: Reduce cognitive load with a clean, distraction-free interface.
+- **Avoid productivity gimmicks**: Let ideas exist without forcing structure.
+- **Respect privacy**: Your data stays on your device using fast, local storage.
 
----
+## ✨ Features
 
-## Planned Direction (Non-binding)
+- **Semantic Search**: Find your thoughts naturally. Void Space uses local embeddings to power semantic search
+- **Frictionless Capture**: Save links, text, and notes instantly from anywhere using the native Share Intent (Android) with a seamless experience.
+- **Inline Editing**: Quickly edit titles, tags, and notes inline without breaking your flow.
+- **Beautiful UX**: Smooth pull-to-refresh animations, staggered grid layouts, and a cohesive design language.
 
-The following reflect **intent**, not current functionality:
+## 🛠️ Tech Stack
 
-- Simple note creation and editing
-- Clean, distraction-free interface
-- Optional sign-in (e.g. Google) for future sync
-- Cross-device access (planned)
-- Lightweight organization (tags / links)
+- **Framework**: [Flutter](https://flutter.dev/) (v3.10+)
+- **Local Storage**: [Hive](https://pub.dev/packages/hive) (Fast, secure NoSQL database)
+- **AI & Embeddings**: Local vector embeddings for semantic search
 
-Nothing here should be assumed as implemented.
+- **UI/UX**: Custom animations, Shimmer loading, Staggered Grid View
 
----
+## 🚀 Getting Started
 
-## Non-Goals
+### Prerequisites
 
-Void does not aim to be:
-- A task or habit manager
-- A social or collaborative platform
-- A feature-heavy productivity system
+- Flutter SDK (`^3.10.7` or later)
+- Dart SDK
+- Android Studio / Xcode for platform-specific builds
 
----
+### Installation
 
-## Status
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Naveen-X/VoidSpace.git
+   cd VoidSpace
+   ```
+2. Install dependencies:
+   ```bash
+   flutter pub get
+   ```
+3. Run the app:
+   ```bash
+   flutter run
+   ```
 
-Concept / early development.  
-The current focus is on defining the core idea before building features.
+## 🗺️ Roadmap
 
----
+We are constantly exploring new ways to make Void Space better. Some planned features include:
 
-## Name
+- **Folders & Collections**: Custom collections with drag-and-drop.
+- **Security Vault**: Biometric/password-locked notes.
 
-**Void**  
-A space where ideas exist without pressure or expectation.
+For a detailed list of planned features and improvements, check out [features.md](features.md).
 
----
-
-## License
+## 📄 License
 
 TBD
