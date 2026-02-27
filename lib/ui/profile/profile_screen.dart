@@ -4,15 +4,26 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'package:file_selector/file_selector.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+
 import 'about_screen.dart';
 import '../../data/stores/void_store.dart';
+import '../../data/stores/preferences_store.dart';
+import '../../data/models/void_item.dart';
+import '../../data/database/void_database.dart';
 import '../../services/security_service.dart';
 import '../../services/haptic_service.dart';
 import '../../app/feature_flags.dart';
 import '../theme/void_design.dart';
 import '../theme/void_theme.dart';
 import '../theme/theme_provider.dart';
-import 'package:provider/provider.dart';
 
 // Extracted components
 import 'components/profile_tiles.dart';
@@ -33,7 +44,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   int _linkCount = 0;
   int _noteCount = 0;
   String _storageSize = "0 KB";
-  final String _displayName = "XD";
+  
+  String _displayName = PreferencesStore.userName;
+  String? _profilePicPath = PreferencesStore.userProfilePicture;
+  bool _isEditingName = false;
+  final TextEditingController _nameController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
 
   late AnimationController _dataStreamController;
   late AnimationController _statsAnimController;
@@ -58,7 +74,21 @@ class _ProfileScreenState extends State<ProfileScreen>
   void dispose() {
     _dataStreamController.dispose();
     _statsAnimController.dispose();
+    _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveName(String val) async {
+    final name = val.trim();
+    if (name.isNotEmpty) {
+      await PreferencesStore.setUserName(name);
+      setState(() {
+        _displayName = name;
+        _isEditingName = false;
+      });
+    } else {
+      setState(() => _isEditingName = false);
+    }
   }
 
   Future<void> _loadData() async {
@@ -75,6 +105,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       _linkCount = links;
       _noteCount = notes;
       _storageSize = "$size KB";
+      _displayName = PreferencesStore.userName;
+      _profilePicPath = PreferencesStore.userProfilePicture;
+      _nameController.text = _displayName;
     });
 
     _statsAnimController.forward();
@@ -184,24 +217,31 @@ class _ProfileScreenState extends State<ProfileScreen>
               children: [
                 Hero(
                   tag: 'profile_icon_hero',
-                  child: Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          theme.textPrimary.withValues(alpha: 0.15),
-                          theme.textPrimary.withValues(alpha: 0.05),
-                        ],
+                  child: GestureDetector(
+                    onTap: () async {
+                      HapticService.light();
+                      final image = await _picker.pickImage(source: ImageSource.gallery);
+                      if (image != null) {
+                        await PreferencesStore.setUserProfilePicture(image.path);
+                        setState(() => _profilePicPath = image.path);
+                      }
+                    },
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: theme.textPrimary.withValues(alpha: 0.1),
+                        border: Border.all(color: theme.textPrimary.withValues(alpha: 0.1)),
+                        image: _profilePicPath != null
+                            ? DecorationImage(
+                                image: FileImage(File(_profilePicPath!)),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
                       ),
-                      border: Border.all(
-                          color: theme.textPrimary.withValues(alpha: 0.1)),
+                      child: _profilePicPath == null ? Icon(Icons.person_rounded, size: 32, color: theme.textSecondary) : null,
                     ),
-                    child: Icon(Icons.person_rounded,
-                        size: 32, color: theme.textSecondary),
                   ),
                 ),
                 const SizedBox(width: 20),
@@ -211,25 +251,55 @@ class _ProfileScreenState extends State<ProfileScreen>
                     children: [
                       Row(
                         children: [
-                          Text(
-                            _displayName,
-                            style: GoogleFonts.ibmPlexSans(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: theme.textPrimary,
+                          if (_isEditingName) ... [
+                            Expanded(
+                              child: TextField(
+                                controller: _nameController,
+                                autofocus: true,
+                                style: GoogleFonts.ibmPlexSans(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.textPrimary,
+                                ),
+                                onSubmitted: _saveName,
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  border: InputBorder.none,
+                                ),
+                              ),
                             ),
-                          ),
+                            IconButton(
+                              icon: Icon(Icons.check, size: 18, color: theme.textPrimary),
+                              onPressed: () => _saveName(_nameController.text),
+                            ),
+                          ] else 
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _isEditingName = true),
+                                child: Text(
+                                  _displayName,
+                                  style: GoogleFonts.ibmPlexSans(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'ID: PX-509-ALPHA',
-                        style: GoogleFonts.ibmPlexMono(
-                          fontSize: 10,
-                          color: theme.textTertiary,
-                          letterSpacing: 1,
+                      if (!_isEditingName) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'ID: PX-509-ALPHA',
+                          style: GoogleFonts.ibmPlexMono(
+                            fontSize: 10,
+                            color: theme.textTertiary,
+                            letterSpacing: 1,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -248,17 +318,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                 value: themeProvider.isDarkMode,
                 onChanged: (_) => themeProvider.toggleTheme(),
               );
-            },
-          ),
-          Divider(color: theme.textPrimary.withValues(alpha: 0.05), height: 1),
-          ActionTile(
-            icon: Icons.logout_rounded,
-            iconColor: Colors.orangeAccent,
-            title: 'Logout',
-            subtitle: 'Terminate active session',
-            onTap: () {
-              HapticService.medium();
-              // TODO: Implement logout
             },
           ),
         ],
@@ -304,23 +363,362 @@ class _ProfileScreenState extends State<ProfileScreen>
             icon: Icons.upload_rounded,
             title: 'Export Vault',
             subtitle: 'Save fragments to file',
-            onTap: () {
-              HapticService.light();
-              // TODO: Implement export
-            },
+            onTap: _exportData,
           ),
           Divider(color: theme.textPrimary.withValues(alpha: 0.05), height: 1),
           ActionTile(
             icon: Icons.download_rounded,
             title: 'Import Vault',
             subtitle: 'Restore from backup',
-            onTap: () {
-              HapticService.light();
-              // TODO: Implement import
-            },
+            onTap: _importData,
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _exportData() async {
+    HapticService.light();
+    try {
+      final allItems = await VoidStore.all(includeDeleted: true);
+      final jsonList = allItems.map((i) => i.toJson()).toList();
+      final jsonStr = jsonEncode(jsonList);
+
+      final now = DateTime.now();
+      final nameStr = 'backup_${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}.json';
+
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        final directory = await getTemporaryDirectory();
+        final file = File('${directory.path}/$nameStr');
+        await file.writeAsString(jsonStr);
+
+        final xFile = XFile(file.path, mimeType: 'application/json');
+        final result = await SharePlus.instance.share(ShareParams(files: [xFile], text: 'VoidSpace Vault Backup'));
+
+        if (result.status == ShareResultStatus.success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(child: Text('Vault exported successfully')),
+                ],
+              ),
+              backgroundColor: VoidTheme.of(context).textPrimary.withValues(alpha: 0.1),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      } else {
+        final location = await getSaveLocation(suggestedName: nameStr);
+        if (location != null) {
+          final path = location.path;
+          final file = File(path);
+          await file.writeAsString(jsonStr);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text('Vault exported to ${file.path.split('/').last}')),
+                    ],
+                  ),
+                  backgroundColor: VoidTheme.of(context).textPrimary.withValues(alpha: 0.1),
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text('Failed to export vault: $e')),
+                  ],
+                ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _importData() async {
+    HapticService.light();
+    const XTypeGroup jsonTypeGroup = XTypeGroup(
+      label: 'JSON Data',
+      extensions: ['json'],
+    );
+    try {
+      final file = await openFile(acceptedTypeGroups: [jsonTypeGroup]);
+      if (file != null) {
+        final content = await file.readAsString();
+        final List<dynamic> jsonList = jsonDecode(content);
+        final importedItems = jsonList.map((j) => VoidItem.fromJson(j)).toList();
+
+        if (mounted) {
+          _showImportBottomSheet(context, VoidTheme.of(context), importedItems);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid backup file'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showImportBottomSheet(BuildContext context, VoidTheme theme, List<VoidItem> importedItems) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1C), // Deep premium greyish background
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 40,
+                spreadRadius: 10,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Drag indicator pill
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Header
+              Text(
+                'Import Vault',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.ibmPlexMono(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Found ${importedItems.length} items in the backup file.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.ibmPlexSans(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 32),
+              
+              // MERGE OPTION
+              GestureDetector(
+                onTap: () async {
+                  HapticService.selection();
+                  Navigator.pop(ctx);
+                  int added = 0;
+                  int skipped = 0;
+                  final existingIds = VoidDatabase.box.keys.toSet();
+                  for (var item in importedItems) {
+                    try {
+                      if (!existingIds.contains(item.id)) {
+                        await VoidDatabase.insertItem(item);
+                        added++;
+                      } else {
+                        skipped++;
+                      }
+                    } catch (_) { skipped++; }
+                  }
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.merge_type, color: Colors.white, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text('Merged. $added added, $skipped skipped.')),
+                        ],
+                      ),
+                      backgroundColor: theme.textPrimary.withValues(alpha: 0.1),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
+                  _loadData();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.call_merge_rounded, color: Colors.white, size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Merge Keep Existing',
+                              style: GoogleFonts.ibmPlexSans(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Safely add new items without overwriting current data.',
+                              style: GoogleFonts.ibmPlexSans(
+                                color: Colors.white.withValues(alpha: 0.6),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // REPLACE OPTION
+              GestureDetector(
+                onTap: () async {
+                  HapticService.heavy();
+                  Navigator.pop(ctx);
+                  await VoidStore.clear();
+                  for (var item in importedItems) {
+                    await VoidDatabase.insertItem(item);
+                  }
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text('Data replaced. ${importedItems.length} loaded.')),
+                        ],
+                      ),
+                      backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
+                  _loadData();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Erase & Replace All',
+                              style: GoogleFonts.ibmPlexSans(
+                                color: Colors.redAccent,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Permanently destroy current vault and load backup.',
+                              style: GoogleFonts.ibmPlexSans(
+                                color: Colors.redAccent.withValues(alpha: 0.8),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              // Cancel Button
+              TextButton(
+                onPressed: () {
+                  HapticService.light();
+                  Navigator.pop(ctx);
+                },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  backgroundColor: Colors.white.withValues(alpha: 0.05),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.ibmPlexSans(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
     );
   }
 

@@ -6,6 +6,8 @@ import 'package:void_space/services/haptic_service.dart';
 import 'package:void_space/app/feature_flags.dart';
 import 'package:void_space/ui/theme/void_theme.dart';
 import 'onboarding_painters.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -27,6 +29,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late AnimationController _initialRevealController;
 
   late final List<OnboardingContent> _contents;
+
+  final TextEditingController _nameController = TextEditingController();
+  String? _profileImagePath;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _profileImagePath = image.path;
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -67,6 +82,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             color: color,
           ),
         ),
+      OnboardingContent(
+        isProfileSetup: true,
+      ),
     ];
 
     _bgRotateController = AnimationController(
@@ -128,6 +146,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   void _onNext() {
     HapticService.light();
+
     if (_currentPage < _contents.length - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 500),
@@ -140,6 +159,15 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   Future<void> _completeOnboarding() async {
     HapticService.medium();
+    
+    final name = _nameController.text.trim();
+    if (name.isNotEmpty) {
+      await PreferencesStore.setUserName(name);
+    }
+    if (_profileImagePath != null) {
+      await PreferencesStore.setUserProfilePicture(_profileImagePath!);
+    }
+
     await PreferencesStore.completeOnboarding();
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/home');
@@ -286,6 +314,107 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         final pulse = Curves.easeInOut.transform(_pulseController.value);
         final entry = Curves.easeOutCubic.transform(_entryController.value);
 
+        if (content.isProfileSetup) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Transform.translate(
+                  offset: Offset(0, -12 * (1 - entry)),
+                  child: Opacity(
+                    opacity: entry,
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: theme.textPrimary.withValues(alpha: 0.1), width: 1),
+                          color: theme.textPrimary.withValues(alpha: 0.05),
+                          image: _profileImagePath != null
+                              ? DecorationImage(
+                                  image: FileImage(File(_profileImagePath!)),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: _profileImagePath == null
+                            ? Icon(Icons.add_a_photo_outlined, size: 40, color: theme.textSecondary)
+                            : null,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 48),
+                Builder(builder: (context) {
+                  final subtitleEntry = Curves.easeOutCubic.transform((entry * 1.2 - 0.15).clamp(0.0, 1.0));
+                  return Transform.translate(
+                    offset: Offset(0, 12 * (1 - subtitleEntry)),
+                    child: Opacity(
+                      opacity: subtitleEntry * 0.6,
+                      child: Text(
+                        "IDENTITY",
+                        style: GoogleFonts.ibmPlexMono(
+                          fontSize: 10, fontWeight: FontWeight.w500, letterSpacing: 4, color: theme.textTertiary,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 12),
+                Transform.translate(
+                  offset: Offset(0, 18 * (1 - entry)),
+                  child: Opacity(
+                    opacity: entry,
+                    child: Text(
+                      "WHO ARE YOU?",
+                      style: GoogleFonts.ibmPlexMono(
+                        fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: 4, color: theme.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Builder(builder: (context) {
+                  final descEntry = Curves.easeOutCubic.transform((entry * 1.4 - 0.4).clamp(0.0, 1.0));
+                  return Transform.translate(
+                    offset: Offset(0, 14 * (1 - descEntry)),
+                    child: Opacity(
+                      opacity: descEntry,
+                      child: TextField(
+                        controller: _nameController,
+                        style: GoogleFonts.ibmPlexSans(fontSize: 18, color: theme.textPrimary),
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          hintText: "Enter your name",
+                          hintStyle: GoogleFonts.ibmPlexSans(color: theme.textSecondary.withValues(alpha: 0.5)),
+                          filled: true,
+                          fillColor: theme.textPrimary.withValues(alpha: 0.05),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: theme.textPrimary.withValues(alpha: 0.1)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: theme.textPrimary.withValues(alpha: 0.1)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: theme.textPrimary.withValues(alpha: 0.4)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          );
+        }
+
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
@@ -342,15 +471,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           ),
 
                           // Custom painter
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: content.painterBuilder(
-                                _bgRotateController.value,
-                                pulse,
-                                theme.textPrimary,
+                          if (content.painterBuilder != null)
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: content.painterBuilder!(
+                                  _bgRotateController.value,
+                                  pulse,
+                                  theme.textPrimary,
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -481,72 +611,80 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildCTAButton(VoidTheme theme, bool isDark) {
-    final isLast = _currentPage == _contents.length - 1;
+    return AnimatedBuilder(
+      animation: _nameController,
+      builder: (context, child) {
+        final isLast = _currentPage == _contents.length - 1;
+        final bool isProfileSetupReady = _nameController.text.trim().isNotEmpty && _profileImagePath != null;
+        final bool isClickable = !isLast || isProfileSetupReady;
+        final bool showSolid = isLast && isProfileSetupReady;
 
-    return GestureDetector(
-      onTap: _onNext,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOutCubic,
-        width: double.infinity,
-        height: 58,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: isLast
-              ? theme.textPrimary
-              : theme.textPrimary.withValues(alpha: isDark ? 0.06 : 0.08),
-          border: Border.all(
-            color: theme.textPrimary
-                .withValues(alpha: isLast ? 0.0 : 0.10),
-            width: 1,
-          ),
-          boxShadow: isLast
-              ? [
-                  BoxShadow(
-                    color: theme.textPrimary.withValues(alpha: 0.20),
-                    blurRadius: 24,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 6),
-                  ),
-                  BoxShadow(
-                    color: theme.textPrimary.withValues(alpha: 0.08),
-                    blurRadius: 60,
-                    spreadRadius: 0,
-                  ),
-                ]
-              : null,
-        ),
-        child: Center(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeIn,
-            child: Row(
-              key: ValueKey(isLast),
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  isLast ? "GET STARTED" : "NEXT",
-                  style: GoogleFonts.ibmPlexMono(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 3,
-                    color: isLast ? theme.bgPrimary : theme.textPrimary,
-                  ),
+        return GestureDetector(
+          onTap: isClickable ? _onNext : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOutCubic,
+            width: double.infinity,
+            height: 58,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: showSolid
+                  ? theme.textPrimary
+                  : theme.textPrimary.withValues(alpha: isDark ? 0.06 : 0.08),
+              border: Border.all(
+                color: theme.textPrimary
+                    .withValues(alpha: showSolid ? 0.0 : 0.10),
+                width: 1,
+              ),
+              boxShadow: showSolid
+                  ? [
+                      BoxShadow(
+                        color: theme.textPrimary.withValues(alpha: 0.20),
+                        blurRadius: 24,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 6),
+                      ),
+                      BoxShadow(
+                        color: theme.textPrimary.withValues(alpha: 0.08),
+                        blurRadius: 60,
+                        spreadRadius: 0,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                child: Row(
+                  key: ValueKey(isLast),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isLast ? "GET STARTED" : "NEXT",
+                      style: GoogleFonts.ibmPlexMono(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 3,
+                        color: showSolid ? theme.bgPrimary : theme.textPrimary.withValues(alpha: isClickable ? 1.0 : 0.5),
+                      ),
+                    ),
+                    if (!isLast) ...[
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: theme.textPrimary.withValues(alpha: 0.5),
+                      ),
+                    ],
+                  ],
                 ),
-                if (!isLast) ...[
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 16,
-                    color: theme.textPrimary.withValues(alpha: 0.5),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }
     );
   }
 }
@@ -555,13 +693,15 @@ class OnboardingContent {
   final String title;
   final String subtitle;
   final String description;
-  final CustomPainter Function(double progress, double pulse, Color color)
+  final CustomPainter Function(double progress, double pulse, Color color)?
       painterBuilder;
+  final bool isProfileSetup;
 
   OnboardingContent({
-    required this.title,
-    required this.subtitle,
-    required this.description,
-    required this.painterBuilder,
+    this.title = '',
+    this.subtitle = '',
+    this.description = '',
+    this.painterBuilder,
+    this.isProfileSetup = false,
   });
 }

@@ -173,4 +173,8 @@ class VoidStore {
     }
     return parts.join('. ');
   }
+
+  static Future<void> clear() async {
+    await VoidDatabase.clear();
+  }
 }

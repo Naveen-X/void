@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:io';
 import '../profile/profile_screen.dart';
+import '../../data/stores/preferences_store.dart';
 import '../theme/void_design.dart';
 import '../theme/void_theme.dart';
 
@@ -95,31 +97,48 @@ class VoidHeader extends StatelessWidget {
                         ),
                       ],
                     ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ProfileScreen(),
-                        ),
-                      ),
-                      child: Hero(
-                        tag: 'profile_icon_hero',
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.textPrimary.withValues(alpha: 0.1),
-                            border: Border.all(
-                              color: theme.textPrimary.withValues(alpha: 0.1),
+                    StatefulBuilder(
+                      builder: (context, setInnerState) {
+                        final String? currentProfilePicPath = PreferencesStore.userProfilePicture;
+                        return GestureDetector(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ProfileScreen(),
+                            ),
+                          ).then((_) {
+                            if (context.mounted) {
+                              setInnerState(() {});
+                            }
+                          }),
+                          child: Hero(
+                            tag: 'profile_icon_hero',
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: theme.textPrimary.withValues(alpha: 0.1),
+                                border: Border.all(
+                                  color: theme.textPrimary.withValues(alpha: 0.1),
+                                ),
+                                image: currentProfilePicPath != null
+                                    ? DecorationImage(
+                                        image: FileImage(File(currentProfilePicPath)),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                              ),
+                              child: currentProfilePicPath == null
+                                  ? Icon(
+                                      Icons.person,
+                                      size: 18,
+                                      color: theme.textSecondary,
+                                    )
+                                  : null,
                             ),
                           ),
-                          child: Icon(
-                            Icons.person,
-                            size: 18,
-                            color: theme.textSecondary,
-                          ),
-                        ),
-                      ),
+                        );
+                      }
                     ),
                   ],
                 ),
