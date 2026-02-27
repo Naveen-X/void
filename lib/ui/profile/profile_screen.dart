@@ -30,6 +30,7 @@ import 'components/profile_tiles.dart';
 import 'components/glitchy_404.dart';
 import '../widgets/glass_card.dart';
 import '../painters/custom_painters.dart';
+import '../widgets/void_snackbar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -396,19 +397,10 @@ class _ProfileScreenState extends State<ProfileScreen>
         final result = await SharePlus.instance.share(ShareParams(files: [xFile], text: 'VoidSpace Vault Backup'));
 
         if (result.status == ShareResultStatus.success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-                  const SizedBox(width: 12),
-                  const Expanded(child: Text('Vault exported successfully')),
-                ],
-              ),
-              backgroundColor: VoidTheme.of(context).textPrimary.withValues(alpha: 0.1),
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 4),
-            ),
+          VoidSnackBar.show(
+            context,
+            message: 'Vault exported successfully',
+            icon: Icons.check_circle_outline,
           );
         }
       } else {
@@ -418,37 +410,20 @@ class _ProfileScreenState extends State<ProfileScreen>
           final file = File(path);
           await file.writeAsString(jsonStr);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Row(
-                    children: [
-                      const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text('Vault exported to ${file.path.split('/').last}')),
-                    ],
-                  ),
-                  backgroundColor: VoidTheme.of(context).textPrimary.withValues(alpha: 0.1),
-                  behavior: SnackBarBehavior.floating,
-                  duration: const Duration(seconds: 4),
-              ),
+            VoidSnackBar.show(
+              context,
+              message: 'Vault exported to ${file.path.split('/').last}',
+              icon: Icons.check_circle_outline,
             );
           }
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.white, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text('Failed to export vault: $e')),
-                  ],
-                ),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-          ),
+        VoidSnackBar.show(
+          context,
+          message: 'Failed to export vault: $e',
+          isError: true,
         );
       }
     }
@@ -473,8 +448,10 @@ class _ProfileScreenState extends State<ProfileScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid backup file'), backgroundColor: Colors.red),
+        VoidSnackBar.show(
+          context,
+          message: 'Invalid backup file',
+          isError: true,
         );
       }
     }
@@ -558,19 +535,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                     } catch (_) { skipped++; }
                   }
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          const Icon(Icons.merge_type, color: Colors.white, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text('Merged. $added added, $skipped skipped.')),
-                        ],
-                      ),
-                      backgroundColor: theme.textPrimary.withValues(alpha: 0.1),
-                      behavior: SnackBarBehavior.floating,
-                      duration: const Duration(seconds: 4),
-                    ),
+                  VoidSnackBar.show(
+                    context,
+                    message: 'Merged. $added added, $skipped skipped.',
+                    icon: Icons.merge_type,
                   );
                   _loadData();
                 },
@@ -632,19 +600,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                     await VoidDatabase.insertItem(item);
                   }
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text('Data replaced. ${importedItems.length} loaded.')),
-                        ],
-                      ),
-                      backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
-                      behavior: SnackBarBehavior.floating,
-                      duration: const Duration(seconds: 4),
-                    ),
+                  VoidSnackBar.show(
+                    context,
+                    message: 'Data replaced. ${importedItems.length} loaded.',
+                    icon: Icons.warning_amber_rounded,
                   );
                   _loadData();
                 },

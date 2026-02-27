@@ -10,6 +10,7 @@ import 'package:void_space/ui/theme/void_theme.dart';
 import 'package:void_space/ui/widgets/void_dialog.dart';
 
 import '../home/messy_card.dart';
+import '../widgets/void_snackbar.dart';
 
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
@@ -49,71 +50,10 @@ class _TrashScreenState extends State<TrashScreen> {
     await VoidStore.restore(item.id);
     _loadTrash();
     if (mounted) {
-      final isDark = VoidTheme.of(context).brightness == Brightness.dark;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFFFFFFF),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark ? const Color(0xFF333333) : const Color(0xFFE5E5E5),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF00F2AD).withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.restore_rounded, color: Color(0xFF00F2AD), size: 16),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Item Restored',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -0.2,
-                          fontSize: 14,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Item returned to home view.',
-                        style: GoogleFonts.inter(
-                          color: isDark ? Colors.white54 : Colors.black54,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          padding: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
-          duration: const Duration(seconds: 3),
-        ),
+      VoidSnackBar.show(
+        context,
+        message: 'Item restored to home view.',
+        icon: Icons.restore_rounded,
       );
     }
   }
@@ -132,71 +72,11 @@ class _TrashScreenState extends State<TrashScreen> {
       await VoidStore.permanentlyDelete(item.id);
       _loadTrash();
       if (mounted) {
-        final isDark = VoidTheme.of(context).brightness == Brightness.dark;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark ? const Color(0xFF333333) : const Color(0xFFE5E5E5),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent, size: 16),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Permanently Deleted',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -0.2,
-                            fontSize: 14,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'The item was removed forever.',
-                          style: GoogleFonts.inter(
-                            color: isDark ? Colors.white54 : Colors.black54,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            padding: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
-            duration: const Duration(seconds: 3),
-          ),
+        VoidSnackBar.show(
+          context,
+          message: 'Item was removed forever.',
+          icon: Icons.delete_forever_rounded,
+          isError: true,
         );
       }
     }

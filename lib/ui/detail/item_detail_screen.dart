@@ -21,6 +21,7 @@ import 'package:void_space/ui/theme/void_design.dart';
 import 'package:void_space/ui/theme/void_theme.dart';
 import 'package:void_space/ui/utils/type_helpers.dart';
 import 'package:void_space/ui/widgets/void_dialog.dart';
+import 'package:void_space/ui/widgets/void_snackbar.dart';
 
 // Components
 
@@ -137,9 +138,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
         } else {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open link')),
-          );
+          VoidSnackBar.show(context, message: 'Could not open link', isError: true);
         }
         return;
       }
@@ -147,18 +146,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       // Check if file exists
       if (!File(path).existsSync()) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('File not found')),
-        );
+        VoidSnackBar.show(context, message: 'File not found', isError: true);
         return;
       }
 
       final result = await OpenFilex.open(path);
       if (result.type != ResultType.done) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open file: ${result.message}')),
-        );
+        VoidSnackBar.show(context, message: 'Could not open file: ${result.message}', isError: true);
       }
     } catch (e) {
       debugPrint('Error opening file: $e');
@@ -295,17 +290,13 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   Future<void> _shareAsPdf() async {
     // TODO: Implement PDF generation
     HapticService.light();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Exporting as PDF... (Coming Soon)')),
-    );
+    VoidSnackBar.show(context, message: 'Exporting as PDF... (Coming Soon)', icon: Icons.picture_as_pdf_rounded);
   }
 
   Future<void> _shareAsHtml() async {
     // TODO: Implement HTML generation
     HapticService.light();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Exporting as HTML... (Coming Soon)')),
-    );
+    VoidSnackBar.show(context, message: 'Exporting as HTML... (Coming Soon)', icon: Icons.html_rounded);
   }
 
   Future<void> _shareAsText() async {
@@ -360,14 +351,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         setState(() => _isGeneratingAI = false);
         HapticService.heavy();
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'AI Generation Failed: ${e.toString()}',
-              style: GoogleFonts.ibmPlexMono(color: theme.textPrimary),
-            ),
-            backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
-          ),
+        VoidSnackBar.show(
+          context,
+          message: 'AI Generation Failed: ${e.toString()}',
+          isError: true,
         );
       }
     }
@@ -701,16 +688,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       HapticService.medium();
                       if (_editedItem.type == 'note') {
                         Clipboard.setData(ClipboardData(text: _editedItem.content));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Copied to clipboard',
-                              style: GoogleFonts.ibmPlexMono(color: theme.bgPrimary),
-                            ),
-                            backgroundColor: theme.textPrimary,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
+                        VoidSnackBar.show(
+                          context,
+                          message: 'Copied to clipboard',
+                          icon: Icons.check_circle_outline_rounded,
                         );
                       } else {
                         // Use imageUrl for images, otherwise content (files/links)

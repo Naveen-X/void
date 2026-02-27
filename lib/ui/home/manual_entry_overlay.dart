@@ -8,6 +8,7 @@ import '../../services/link_metadata_service.dart';
 import '../../services/haptic_service.dart';
 import '../../services/ai_service.dart';
 import '../../ui/theme/void_theme.dart';
+import '../../ui/widgets/void_snackbar.dart';
 
 class ManualEntryOverlay extends StatefulWidget {
   final VoidCallback onSave;
@@ -119,71 +120,10 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
       debugPrint('Save failed: Duplicate Item');
       if (mounted) {
         setState(() => _isProcessing = false);
-        final isDark = VoidTheme.of(context).brightness == Brightness.dark;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark ? const Color(0xFF333333) : const Color(0xFFE5E5E5),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                   Container(
-                     padding: const EdgeInsets.all(8),
-                     decoration: BoxDecoration(
-                       color: Colors.amberAccent.withValues(alpha: 0.15),
-                       shape: BoxShape.circle,
-                     ),
-                     child: const Icon(Icons.file_copy_rounded, color: Colors.amberAccent, size: 16),
-                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Already Saved',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -0.2,
-                            fontSize: 14,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'You have already saved this fragment.',
-                          style: GoogleFonts.inter(
-                            color: isDark ? Colors.white54 : Colors.black54,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent, // Let Container handle styling
-            elevation: 0,
-            padding: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
-            duration: const Duration(seconds: 3),
-          ),
+        VoidSnackBar.show(
+          context,
+          message: 'You have already saved this fragment.',
+          icon: Icons.file_copy_rounded,
         );
         Navigator.pop(context);
       }
@@ -191,8 +131,10 @@ class _ManualEntryOverlayState extends State<ManualEntryOverlay> with SingleTick
       debugPrint('Save failed: $e');
       if (mounted) {
         setState(() => _isProcessing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save fragment. Please try again.')),
+        VoidSnackBar.show(
+          context,
+          message: 'Failed to save fragment. Please try again.',
+          isError: true,
         );
       }
     } finally {
