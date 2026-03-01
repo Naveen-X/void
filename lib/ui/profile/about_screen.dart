@@ -220,7 +220,7 @@ class AboutScreen extends StatelessWidget {
                   child: SocialButton(
                       icon: Icons.code,
                       label: "GitHub",
-                      url: "https://github.com/Naveen-X",
+                      url: "https://github.com/naveenxd",
                       centerContent: true)),
               const SizedBox(width: 12),
               Expanded(

@@ -37,7 +37,7 @@ Void aims to:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Naveen-X/VoidSpace.git
+   git clone https://github.com/naveenxd/VoidSpace.git
    cd VoidSpace
    ```
 2. Install dependencies:
